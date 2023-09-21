@@ -1,0 +1,1 @@
+# Provides functionality to ensure yaml file matches syntax requirements

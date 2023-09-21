@@ -1,0 +1,1 @@
+# Builds strings for module, resource, variable, and data blocks
