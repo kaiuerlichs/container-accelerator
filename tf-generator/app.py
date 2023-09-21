@@ -1,1 +1,5 @@
-# Main entry point to application
+import yaml
+
+
+with open("config.yml", "r") as file:
+    config = yaml.safe_load(file)
