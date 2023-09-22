@@ -1,5 +1,5 @@
 from util.tf_string_builder import TFStringBuilder
-
+import boto3
 
 _steps_registry = [
     "_generate_tf_header",
@@ -44,7 +44,7 @@ def _generate_eks_modules(config):
                 "desired_capacity": group["desired_capacity"],
                 "instance_type": group["instance_type"],
                 "name": group["name"]
-            } 
+            }
         for group in config["node_groups"]}
 
     else:
@@ -71,7 +71,7 @@ def _generate_k8s_namespaces(config):
     output = ""
     output += TFStringBuilder.generate_data("eks_cluster", "cluster", cluster_datapoint_config)
     output += TFStringBuilder.generate_provider("kubernetes", k8s_provider_config)
-    
+
     for ns_config in k8s_ns_configs:
         output += TFStringBuilder.generate_resource("kubernetes_namespace", ns_config["metadata"]["name"], ns_config)
 
@@ -89,3 +89,36 @@ def _generate_ingress_controller(config):
 def _generate_alb_ingress_controller(config):
     # Will be done in CA-39
     pass
+
+
+# Facade to hold all the functions to generate terraform files
+
+def _generate_vpc_resource(config):
+    """
+    Method for generating a vpc object
+    :param config: Dictionary representation of  config file
+    :return: Dictionary of the vpc's config options
+    """
+    vpc_config = {"cidr_block": str(config["cidr_block"]) if "cidr_block" in config else "10.0.0.0/16"}
+
+    return vpc_config
+
+
+def _generate_subnet_resources(config):
+    """
+    Method for generating all subnets within a vpc
+    :param config: Dictionary representation of config file
+    :return: A list of subnet config options
+    """
+    subnets = []
+    if "availability_zones" in config:
+        for availability_zone in config["availability_zones"]:
+            subnet_config = {"cidr_block": "10.0.1.0/24", "availability_zone": availability_zone, "vpc_name": "main"}
+            subnets.append(subnet_config)
+    else:
+        ec2_client = boto3.client("ec2", region_name=config["aws_region"])
+        availability_zone_names = list(map(lambda az: az["ZoneName"],
+                                           ec2_client.describe_availability_zones()["AvailabilityZones"]))
+        for availability_zone in availability_zone_names:
+            subnet_config = {"cidr_block": "10.0.1.0/24", "availability_zone": availability_zone}
+    return subnets
