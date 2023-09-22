@@ -1,7 +1,27 @@
 from util.tf_string_builder import TFStringBuilder
 
 
-def generate_eks_modules(config):
+_steps_registry = ["_generate_tf_header"]
+
+
+def generate_tf_from_yaml(config: dict) -> str:
+    """
+    Main Generation Method Called from entrypoint with the configuration as a dictionary.
+    :param config: Dictionary of the configuration file
+    :return: String containing the output configuration data
+    """
+    output_buffer = ""
+    for step in _steps_registry:
+        output_buffer += eval(f"{step}(config)")  # Execute each step in the registry passing the dictionary to each
+    return output_buffer
+
+
+def _generate_tf_header(config: dict) -> str:
+    # TODO: Complete Method
+    return ""
+
+
+def _generate_eks_modules(config):
     source = "terraform-aws-modules/eks/aws"
     version = "19.16.0"
 
@@ -33,7 +53,7 @@ def generate_eks_modules(config):
     return TFStringBuilder.generate_module("eks", source, version, eks_config)
 
 
-def generate_k8s_namespaces(config):
+def _generate_k8s_namespaces(config):
     cluster_datapoint_config = {
         "name": ("module.eks.cluster_name", "ref")
     }
@@ -53,14 +73,14 @@ def generate_k8s_namespaces(config):
     return output
 
 
-def generate_ingress_controller(config):
+def _generate_ingress_controller(config):
     match config["ingress_type"]:
         case "alb":
-            return generate_alb_ingress_controller(config)
+            return _generate_alb_ingress_controller(config)
         case _:
             return ""
 
 
-def generate_alb_ingress_controller(config):
+def _generate_alb_ingress_controller(config):
     # Will be done in CA-39
     pass
