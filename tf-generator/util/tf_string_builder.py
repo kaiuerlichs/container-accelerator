@@ -131,6 +131,14 @@ class TFStringBuilder:
 
     @staticmethod
     def _list_to_string(list_: list, tab_level=1, recursion_count=1) -> str:
+        """
+        ->Internal method<-
+        Convert List to a TF Config String
+        :param list_: input list for conversion
+        :param tab_level: number of levels deep to place the items
+        :param recursion_count: counter used to prevent infinite loops
+        :return: a string representation of the list
+        """
         if recursion_count > MAX_RECURSIONS:
             raise Exception("Recursion Count Maximum Reached!")
         output = ""
