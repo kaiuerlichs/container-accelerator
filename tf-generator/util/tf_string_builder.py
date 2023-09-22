@@ -111,16 +111,20 @@ class TFStringBuilder:
         for key in dict_:
             value = dict_[key]
             output += f"{'  ' * tab_level}{key}{' ' * (max_key_len - len(key))} "
+            if isinstance(value, tuple):
+                if value[1] == "ref":
+                    output += f"= {value[0]}{LINE_ENDINGS}"
+                continue
             if isinstance(value, str):
                 output += f"= \"{value}\"{LINE_ENDINGS}"
                 continue
             if isinstance(value, dict):
-                output += "{" + LINE_ENDINGS
+                output += "= {" + LINE_ENDINGS
                 output += TFStringBuilder._dict_to_string(value, tab_level + 1, recursion_count + 1)
                 output += f"{'  ' * tab_level}" + "}" + LINE_ENDINGS
                 continue
             if isinstance(value, list):
-                output += "[" + LINE_ENDINGS
+                output += "= [" + LINE_ENDINGS
                 output += TFStringBuilder._list_to_string(value, tab_level + 1, recursion_count + 1)
                 output += f"{'  ' * tab_level}]" + LINE_ENDINGS
                 continue
@@ -143,6 +147,10 @@ class TFStringBuilder:
             raise Exception("Recursion Count Maximum Reached!")
         output = ""
         for value in list_:
+            if isinstance(value, tuple):
+                if value[1] == "ref":
+                    output += f"{'  ' * tab_level}{value},{LINE_ENDINGS}"
+                continue
             if isinstance(value, str):
                 output += f"{'  ' * tab_level}\"{value}\",{LINE_ENDINGS}"
                 continue
