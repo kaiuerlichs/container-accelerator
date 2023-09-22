@@ -1,8 +1,5 @@
 # Builds strings for module, resource, variable, and data blocks
-import abc
-
 from constants.configs import MAX_RECURSIONS, LINE_ENDINGS
-import collections.abc
 
 
 class TFStringBuilder:
@@ -122,9 +119,36 @@ class TFStringBuilder:
                 output += TFStringBuilder._dict_to_string(value, tab_level + 1, recursion_count + 1)
                 output += f"{'  ' * tab_level}" + "}" + LINE_ENDINGS
                 continue
-            if isinstance(value, abc.ABC):
+            if isinstance(value, list):
+                output += "[" + LINE_ENDINGS
+                output += TFStringBuilder._list_to_string(value, tab_level + 1, recursion_count + 1)
+                output += f"{'  ' * tab_level}]" + LINE_ENDINGS
                 continue
             if isinstance(value, int) or isinstance(value, float) or value.isnumeric():
                 output += f"= {value}{LINE_ENDINGS}"
+                continue
+        return output
+
+    @staticmethod
+    def _list_to_string(list_: list, tab_level=1, recursion_count=1) -> str:
+        if recursion_count > MAX_RECURSIONS:
+            raise Exception("Recursion Count Maximum Reached!")
+        output = ""
+        for value in list_:
+            if isinstance(value, str):
+                output += f"{'  ' * tab_level}\"{value}\",{LINE_ENDINGS}"
+                continue
+            if isinstance(value, dict):
+                output += f"{'  ' * tab_level}" + "{" + LINE_ENDINGS
+                output += (TFStringBuilder._dict_to_string(value, tab_level + 1, recursion_count + 1))
+                output += f"{'  ' * tab_level}" + "}," + LINE_ENDINGS
+                continue
+            if isinstance(value, list):
+                output += f"{'  ' * tab_level}[" + LINE_ENDINGS
+                output += (TFStringBuilder._list_to_string(value, tab_level + 1, recursion_count + 1))
+                output += f"{'  ' * tab_level}]," + LINE_ENDINGS
+                continue
+            if isinstance(value, int) or isinstance(value, float) or value.isnumeric():
+                output += f"{'  ' * tab_level}{value},{LINE_ENDINGS}"
                 continue
         return output
