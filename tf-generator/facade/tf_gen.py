@@ -1,7 +1,12 @@
 from util.tf_string_builder import TFStringBuilder
 
 
-_steps_registry = ["_generate_tf_header"]
+_steps_registry = [
+    "_generate_tf_header",
+    "_generate_eks_modules",
+    "_generate_k8s_namespaces",
+    "_generate_ingress_controller"
+]
 
 
 def generate_tf_from_yaml(config: dict) -> str:
