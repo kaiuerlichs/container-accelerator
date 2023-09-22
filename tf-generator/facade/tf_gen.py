@@ -53,3 +53,14 @@ def generate_k8s_namespaces(config):
     return output
 
 
+def generate_ingress_controller(config):
+    match config["ingress_type"]:
+        case "alb":
+            return generate_alb_ingress_controller(config)
+        case _:
+            return ""
+
+
+def generate_alb_ingress_controller(config):
+    # Will be done in CA-39
+    pass
