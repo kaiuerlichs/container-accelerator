@@ -104,7 +104,7 @@ def _generate_vpc_resource(config):
     :param config: Dictionary representation of  config file
     :return: Dictionary of the vpc's config options
     """
-    vpc_config = {"cidr_block": str(config["cidr_block"]) if "cidr_block" in config else "10.0.0.0/16"}
+    vpc_config = {"cidr_block": str(config["cidr_block"]) if "cidr_block" in config else DEFAULT_CIDR}
 
     return TFStringBuilder.generate_resource("aws_vpc", "main", vpc_config)
 
