@@ -106,7 +106,7 @@ def _generate_vpc_resource(config):
     """
     vpc_config = {"cidr_block": str(config["cidr_block"]) if "cidr_block" in config else DEFAULT_CIDR}
 
-    return TFStringBuilder.generate_resource("aws_vpc", "main", vpc_config)
+    return TFStringBuilder.generate_resource("aws_vpc", f"vpc_{config['aws_region']}", vpc_config)
 
 
 def _generate_subnet_resources(config):
@@ -146,7 +146,7 @@ def _generate_subnet_resources(config):
         subnet_1 = f"{ipaddress.ip_address(sub_net1_base_address)}/{subnet_net_mask}"
         # Create a config object for the first subnet
         subnet1_config = {"cidr_block": subnet_1, "availability_zone": availability_zone,
-                          "vpc_id": ("aws_vpc.main.id", "ref")}
+                          "vpc_id": (f"aws_vpc.vpc_{config['aws_region']}.id", "ref")}
         # Add the first subnet to the list of subnets
         subnets.append(subnet1_config)
 
@@ -155,7 +155,7 @@ def _generate_subnet_resources(config):
         subnet_2 = f"{ipaddress.ip_address(sub_net2_base_address)}/{subnet_net_mask}"
 
         subnet2_config = {"cidr_block": subnet_2, "availability_zone": availability_zone,
-                          "vpc_id": ("aws_vpc.main.id", "ref")}
+                          "vpc_id": (f"aws_vpc.vpc_{config['aws_region']}.id", "ref")}
         subnets.append(subnet2_config)
 
     builder = ""
