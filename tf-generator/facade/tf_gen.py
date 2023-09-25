@@ -1,11 +1,18 @@
-from util.tf_string_builder import TFStringBuilder
+import ipaddress
+import math
+
 import boto3
+
+from constants.defaults import DEFAULT_CIDR
+from util.tf_string_builder import TFStringBuilder
 
 _steps_registry = [
     "_generate_tf_header",
     "_generate_eks_modules",
     "_generate_k8s_namespaces",
-    "_generate_ingress_controller"
+    "_generate_ingress_controller",
+    "_generate_vpc_resource",
+    "_generate_subnet_resources"
 ]
 
 
@@ -45,7 +52,7 @@ def _generate_eks_modules(config):
                 "instance_type": group["instance_type"],
                 "name": group["name"]
             }
-        for group in config["node_groups"]}
+            for group in config["node_groups"]}
 
     else:
         eks_config["fargate_profiles"] = {
@@ -91,8 +98,6 @@ def _generate_alb_ingress_controller(config):
     pass
 
 
-# Facade to hold all the functions to generate terraform files
-
 def _generate_vpc_resource(config):
     """
     Method for generating a vpc object
@@ -101,7 +106,7 @@ def _generate_vpc_resource(config):
     """
     vpc_config = {"cidr_block": str(config["cidr_block"]) if "cidr_block" in config else "10.0.0.0/16"}
 
-    return vpc_config
+    return TFStringBuilder.generate_resource("aws_vpc", "main", vpc_config)
 
 
 def _generate_subnet_resources(config):
@@ -111,14 +116,55 @@ def _generate_subnet_resources(config):
     :return: A list of subnet config options
     """
     subnets = []
+    network = ipaddress.ip_network(str(config["cidr_block"]) if "cidr_block" in config else DEFAULT_CIDR)
+    availability_zones = []
     if "availability_zones" in config:
-        for availability_zone in config["availability_zones"]:
-            subnet_config = {"cidr_block": "10.0.1.0/24", "availability_zone": availability_zone, "vpc_name": "main"}
-            subnets.append(subnet_config)
+        availability_zones = config["availability_zones"]
     else:
         ec2_client = boto3.client("ec2", region_name=config["aws_region"])
-        availability_zone_names = list(map(lambda az: az["ZoneName"],
-                                           ec2_client.describe_availability_zones()["AvailabilityZones"]))
-        for availability_zone in availability_zone_names:
-            subnet_config = {"cidr_block": "10.0.1.0/24", "availability_zone": availability_zone}
-    return subnets
+        availability_zones = list(map(lambda az: az["ZoneName"],
+                                      ec2_client.describe_availability_zones()["AvailabilityZones"]))
+
+    # Calculate number of Addresses to allocate to each block (rounded to nearest power of 2)
+    addresses_per_subnet = 2 ** math.floor(
+        (math.log(network.num_addresses / (2 * len(availability_zones))) / math.log(2)))
+    # Determine the minimum netmask to allocate that number of addresses
+    subnet_net_mask \
+        = int(32 - math.log2(addresses_per_subnet))
+    # Difference between new masks and old masks
+    num_modifiable_bits = int(subnet_net_mask - network.prefixlen)
+    # Convert the address to an integer for calculations of subnets
+    network_as_int = int(network.network_address)
+
+    for i, availability_zone in enumerate(availability_zones):
+        # Each AZ is assigned 2 subnets, i * 2 and i * 2 + 1
+        sub_network_index = i * 2
+        # Calculate the new base address from the index and the original address
+        sub_net1_base_address = _generate_base_address(sub_network_index, network, num_modifiable_bits,
+                                                       network_as_int)
+        # Convert the new address into a string, appending the netmask
+        subnet_1 = f"{ipaddress.ip_address(sub_net1_base_address)}/{subnet_net_mask}"
+        # Create a config object for the first subnet
+        subnet1_config = {"cidr_block": subnet_1, "availability_zone": availability_zone,
+                          "vpc_id": ("aws_vpc.main.id", "ref")}
+        # Add the first subnet to the list of subnets
+        subnets.append(subnet1_config)
+
+        sub_net2_base_address = _generate_base_address(sub_network_index + 1, network, num_modifiable_bits,
+                                                       network_as_int)
+        subnet_2 = f"{ipaddress.ip_address(sub_net2_base_address)}/{subnet_net_mask}"
+
+        subnet2_config = {"cidr_block": subnet_2, "availability_zone": availability_zone,
+                          "vpc_id": ("aws_vpc.main.id", "ref")}
+        subnets.append(subnet2_config)
+
+    builder = ""
+    for i, subnet in enumerate(subnets):
+        builder += TFStringBuilder.generate_resource("aws_subnet",
+                                                     f"subnet_{i % 2}_{subnet['availability_zone']}", subnet)
+    return builder
+
+
+def _generate_base_address(sub_network_index, network, num_modifiable_bits, network_as_int):
+    return ((sub_network_index << (network.prefixlen - int(num_modifiable_bits))) |
+            network_as_int)
