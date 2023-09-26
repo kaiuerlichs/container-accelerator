@@ -1,3 +1,4 @@
+# Has constants for default values in config
 DEFAULT_CIDR_BLOCK = "10.0.0.0/16"
 
 VALID_EKS_VERSIONS = [
