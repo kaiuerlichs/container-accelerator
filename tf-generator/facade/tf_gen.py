@@ -3,6 +3,7 @@ import math
 
 import boto3
 
+from constants.defaults import DEFAULT_CIDR_BLOCK
 from util.tf_string_builder import TFStringBuilder
 
 
@@ -109,7 +110,7 @@ def _generate_vpc_resource(config):
     :return: Dictionary of the vpc's config options
     """
     vpc_config = {
-        "cidr_block": str(config["cidr_block"]) if "cidr_block" in config else DEFAULT_CIDR
+        "cidr_block": str(config["cidr_block"]) if "cidr_block" in config else DEFAULT_CIDR_BLOCK
     }
 
     return TFStringBuilder.generate_resource("aws_vpc", f"vpc_{config['aws_region']}", vpc_config)
@@ -122,7 +123,7 @@ def _generate_subnet_resources(config):
     :return: A list of subnet config options
     """
     subnets = []
-    network = ipaddress.ip_network(str(config["cidr_block"]) if "cidr_block" in config else DEFAULT_CIDR)
+    network = ipaddress.ip_network(str(config["cidr_block"]) if "cidr_block" in config else DEFAULT_CIDR_BLOCK)
     availability_zones = []
     if "availability_zones" in config:
         availability_zones = config["availability_zones"]
