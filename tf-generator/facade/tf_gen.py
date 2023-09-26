@@ -6,7 +6,6 @@ from constants.defaults import DEFAULT_CIDR_BLOCK
 from util.aws import get_aws_availability_zones, get_aws_roles
 from util.tf_string_builder import TFStringBuilder
 
-
 _steps_registry = [
     "_generate_tf_header",
     "_generate_aws_provider",
@@ -91,7 +90,7 @@ def _generate_k8s_namespaces(config):
     output = ""
     output += TFStringBuilder.generate_data("eks_cluster", "cluster", cluster_datapoint_config)
     output += TFStringBuilder.generate_provider("kubernetes", k8s_provider_config)
-    
+
     for ns_config in k8s_ns_configs:
         output += TFStringBuilder.generate_resource("kubernetes_namespace", ns_config["metadata"]["name"], ns_config)
 
@@ -167,7 +166,8 @@ def _generate_subnet_resources(config):
         subnet1_config = {
             "cidr_block": subnet_1,
             "availability_zone": availability_zone,
-            "vpc_id": (f"aws_vpc.vpc_{config['aws_region']}.id", "ref")
+            "vpc_id": (f"aws_vpc.vpc_{config['aws_region']}.id", "ref"),
+            "tags": _get_tags(config)
         }
 
         # Add the first subnet to the list of subnets
@@ -181,7 +181,8 @@ def _generate_subnet_resources(config):
         subnet2_config = {
             "cidr_block": subnet_2,
             "availability_zone": availability_zone,
-            "vpc_id": (f"aws_vpc.vpc_{config['aws_region']}.id", "ref")
+            "vpc_id": (f"aws_vpc.vpc_{config['aws_region']}.id", "ref"),
+            "tags": _get_tags(config)
         }
 
         subnets.append(subnet2_config)
