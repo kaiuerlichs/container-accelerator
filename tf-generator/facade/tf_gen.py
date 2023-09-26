@@ -25,7 +25,8 @@ _steps_registry = [
     "_generate_iam_roles"
 ]
 
-def generate_tf_from_yaml(config: dict):
+
+def generate_tf_from_yaml(config: dict) -> str:
     """
     Main Generation Method Called from entrypoint with the configuration as a dictionary.
     :param config: Dictionary of the configuration file
