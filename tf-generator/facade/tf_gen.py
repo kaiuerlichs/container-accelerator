@@ -94,8 +94,46 @@ def _generate_alb_ingress_controller(config):
     pass
 
 
-def _generate_iam_roles(config):
-    return ""
+def _generate_iam_roles(config: dict) -> str:
+    """
+    Generate the required blocks for 2 IAM roles that can interact with the generated EKS cluster
+    :param config: YAML Config dict
+    :return: Blocks of IAM roles
+    """
+    output = ""
+    output += TFStringBuilder.generate_data("aws_iam_policy_document", "cluster_admin_policy_doc", {
+        "statement": {
+            "actions": ["eks:*"],
+            "resources": [("aws_eks_cluster.cluster.arn", "ref")],
+            "effect": "Allow"
+        }
+    })
+    output += TFStringBuilder.generate_data("aws_iam_policy_document", "cluster_dev_policy_doc", {
+        "statement": {
+            "actions": ["eks:AccessKubernetesApi"],
+            "resources": [("aws_eks_cluster.cluster.arn", "ref")],
+            "effect": "Allow"
+        }
+    })
+    output += TFStringBuilder.generate_resource("aws_iam_policy", "cluster_admin_policy", {
+        "name": "cluster admin policy",
+        "description": "All Access to Cluster",
+        "policy": ("data.aws_iam_policy_document.cluster_admin_policy_doc.json", "ref")
+    })
+    output += TFStringBuilder.generate_resource("aws_iam_policy", "cluster_dev_policy", {
+        "name": "cluster dev policy",
+        "description": "Access to K8s CLI for Cluster",
+        "policy": ("data.aws_iam_policy_document.cluster_dev_policy_doc.json", "ref")
+    })
+    output += TFStringBuilder.generate_resource("aws_iam_role", "cluster_admin_role", {
+        "name": "cluster admin role",
+        "managed_policy_arns": [("aws_iam_policy.cluster_admin_policy.arn", "ref")]
+    })
+    output += TFStringBuilder.generate_resource("aws_iam_role", "cluster_dev_role", {
+        "name": "cluster dev role",
+        "managed_policy_arns": [("aws_iam_policy.cluster_dev_policy.arn", "ref")]
+    })
+    return output
 
 
 def _generate_aws_provider(config: dict) -> str:
