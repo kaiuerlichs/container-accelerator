@@ -1,11 +1,14 @@
-from util.tf_string_builder import TFStringBuilder
+import os
 
+from util.tf_string_builder import TFStringBuilder
 
 _steps_registry = [
     "_generate_tf_header",
+    "_generate_aws_provider",
     "_generate_eks_modules",
     "_generate_k8s_namespaces",
-    "_generate_ingress_controller"
+    "_generate_ingress_controller",
+    "_generate_iam_roles"
 ]
 
 
@@ -44,8 +47,8 @@ def _generate_eks_modules(config):
                 "desired_capacity": group["desired_capacity"],
                 "instance_type": group["instance_type"],
                 "name": group["name"]
-            } 
-        for group in config["node_groups"]}
+            }
+            for group in config["node_groups"]}
 
     else:
         eks_config["fargate_profiles"] = {
@@ -71,7 +74,7 @@ def _generate_k8s_namespaces(config):
     output = ""
     output += TFStringBuilder.generate_data("eks_cluster", "cluster", cluster_datapoint_config)
     output += TFStringBuilder.generate_provider("kubernetes", k8s_provider_config)
-    
+
     for ns_config in k8s_ns_configs:
         output += TFStringBuilder.generate_resource("kubernetes_namespace", ns_config["metadata"]["name"], ns_config)
 
@@ -89,3 +92,23 @@ def _generate_ingress_controller(config):
 def _generate_alb_ingress_controller(config):
     # Will be done in CA-39
     pass
+
+
+def _generate_iam_roles(config):
+    return ""
+
+
+def _generate_aws_provider(config: dict) -> str:
+    """
+    Generate the AWS Provider Block
+    :param config: YAML Config dict
+    :return: Block of Provider
+    """
+    return TFStringBuilder.generate_provider("aws", {
+        "access_key": os.environ.get(config['access_token_key'], "ACCESS_TOKEN"),
+        "secret_key": os.environ.get(config['secret_token_key'], "SECRET_TOKEN"),
+        "region": config['aws_region'],
+        "assume_role": {
+            "role_arn": config['administrator_iam_role_arn']
+        } if config['administrator_iam_role_arn'] is not None else None
+    })

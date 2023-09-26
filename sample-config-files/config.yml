@@ -40,3 +40,9 @@ environment: dev # defaults to dev
 additional_tags:
   - key: my-key
     value: my-value
+
+# Roles and Permissions
+developer_iam_role_arn: arn:aws:iam::745519854668:role/aws-service-role/support.amazonaws.com/AWSServiceRoleForSupport
+administrator_iam_role_arn: arn:aws:iam::745519854668:role/aws-service-role/support.amazonaws.com/AWSServiceRoleForSupport
+access_token_key: ACCESS_TOKEN # The key that refers to the secret stored in GitHub Secrets - THIS IS NOT A CREDENTIAL
+secret_token_key: SECRET_TOKEN # The key that refers to the secret stored in GitHub Secrets - THIS IS NOT A CREDENTIAL
