@@ -1,5 +1,6 @@
 import ipaddress
 import math
+import os
 
 from constants.defaults import DEFAULT_CIDR_BLOCK
 from util.aws import get_aws_availability_zones
@@ -7,11 +8,13 @@ from util.tf_string_builder import TFStringBuilder
 
 _steps_registry = [
     "_generate_tf_header",
+    "_generate_aws_provider",
     "_generate_eks_modules",
     "_generate_k8s_namespaces",
     "_generate_ingress_controller",
     "_generate_vpc_resource",
-    "_generate_subnet_resources"
+    "_generate_subnet_resources",
+    "_generate_iam_roles"
 ]
 
 
@@ -190,3 +193,23 @@ def _generate_base_address(sub_network_index, network, num_modifiable_bits, netw
     """
     return ((sub_network_index << (network.prefixlen - int(num_modifiable_bits))) |
             network_as_int)
+
+
+def _generate_iam_roles(config):
+    return ""
+
+
+def _generate_aws_provider(config: dict) -> str:
+    """
+    Generate the AWS Provider Block
+    :param config: YAML Config dict
+    :return: Block of Provider
+    """
+    return TFStringBuilder.generate_provider("aws", {
+        "access_key": os.environ.get(config['access_token_key'], "ACCESS_TOKEN"),
+        "secret_key": os.environ.get(config['secret_token_key'], "SECRET_TOKEN"),
+        "region": config['aws_region'],
+        "assume_role": {
+            "role_arn": config['administrator_iam_role_arn']
+        } if config['administrator_iam_role_arn'] is not None else None
+    })
