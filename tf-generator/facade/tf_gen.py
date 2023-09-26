@@ -123,7 +123,7 @@ def _generate_k8s_namespaces(config):
     output = ""
     output += TFStringBuilder.generate_data("eks_cluster", "cluster", cluster_datapoint_config)
     output += TFStringBuilder.generate_provider("kubernetes", k8s_provider_config)
-    
+
     for ns_config in k8s_ns_configs:
         output += TFStringBuilder.generate_resource("kubernetes_namespace", ns_config["metadata"]["name"], ns_config)
 
@@ -199,7 +199,8 @@ def _generate_subnet_resources(config):
         subnet1_config = {
             "cidr_block": subnet_1,
             "availability_zone": availability_zone,
-            "vpc_id": (f"aws_vpc.vpc_{config['aws_region']}.id", "ref")
+            "vpc_id": (f"aws_vpc.vpc_{config['aws_region']}.id", "ref"),
+            "tags": _get_tags(config)
         }
 
         # Add the first subnet to the list of subnets
@@ -213,7 +214,8 @@ def _generate_subnet_resources(config):
         subnet2_config = {
             "cidr_block": subnet_2,
             "availability_zone": availability_zone,
-            "vpc_id": (f"aws_vpc.vpc_{config['aws_region']}.id", "ref")
+            "vpc_id": (f"aws_vpc.vpc_{config['aws_region']}.id", "ref"),
+            "tags": _get_tags(config)
         }
 
         subnets.append(subnet2_config)
@@ -381,3 +383,4 @@ def _output_to_tf_file(output_string, region_name):
         os.makedirs(f"./{region_name}")
     with open(f"./{region_name}/main.tf", "w+") as file:
         file.write(output_string)
+
