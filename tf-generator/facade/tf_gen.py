@@ -1,9 +1,8 @@
 import ipaddress
 import math
 
-import boto3
-
 from constants.defaults import DEFAULT_CIDR_BLOCK
+from util.aws import get_aws_availability_zones
 from util.tf_string_builder import TFStringBuilder
 
 _steps_registry = [
@@ -124,9 +123,7 @@ def _generate_subnet_resources(config):
     if "availability_zones" in config:
         availability_zones = config["availability_zones"]
     else:
-        ec2_client = boto3.client("ec2", region_name=config["aws_region"])
-        availability_zones = list(map(lambda az: az["ZoneName"],
-                                      ec2_client.describe_availability_zones()["AvailabilityZones"]))
+        availability_zones = get_aws_availability_zones(config["aws_region"])
 
     # Calculate number of Addresses to allocate to each block (rounded to nearest power of 2)
     addresses_per_subnet = 2 ** math.floor(
