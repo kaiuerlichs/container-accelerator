@@ -5,6 +5,7 @@ import boto3
 
 from util.tf_string_builder import TFStringBuilder
 
+
 _steps_registry = [
     "_generate_tf_header",
     "_generate_eks_modules",
@@ -41,6 +42,7 @@ def _generate_eks_modules(config):
     eks_config["cluster_version"] = str(config["eks_version"]) if "eks_version" in config else "1.27"
     eks_config["subnets"] = ("aws_subnet.private_subnet[*].id", "ref")
     eks_config["vpc_id"] = ("aws_vpc.vpc.id", "ref")
+    eks_config["tags"] = _get_tags(config)
 
     if (not config["fargate"] if "fargate" in config else True):
         eks_config["eks_managed_node_groups"] = {
@@ -67,18 +69,20 @@ def _generate_eks_modules(config):
 
 def _generate_k8s_namespaces(config):
     cluster_datapoint_config = {
-        "name": ("module.eks.cluster_name", "ref")
+        "name": ("module.eks.cluster_name", "ref"),
+        "tags": _get_tags(config)
     }
     k8s_provider_config = {
         "host": ("data.eks_cluster.cluster.endpoint", "ref"),
-        "cluster_ca_certificate": ("base64decode(data.eks_cluster.cluster.certificate_authority.0.data)", "ref")
+        "cluster_ca_certificate": ("base64decode(data.eks_cluster.cluster.certificate_authority.0.data)", "ref"),
+        "tags": _get_tags(config)
     }
     k8s_ns_configs = [{"metadata": {"name": ns}} for ns in config["cluster_namespaces"]]
 
     output = ""
     output += TFStringBuilder.generate_data("eks_cluster", "cluster", cluster_datapoint_config)
     output += TFStringBuilder.generate_provider("kubernetes", k8s_provider_config)
-
+    
     for ns_config in k8s_ns_configs:
         output += TFStringBuilder.generate_resource("kubernetes_namespace", ns_config["metadata"]["name"], ns_config)
 
@@ -192,3 +196,15 @@ def _generate_base_address(sub_network_index, network, num_modifiable_bits, netw
     """
     return ((sub_network_index << (network.prefixlen - int(num_modifiable_bits))) |
             network_as_int)
+
+
+def _get_tags(config):
+    tags = {
+        "resource_owner": config["resource_owner"],
+        "environment": config["environment"] if "environment" in config else "dev",
+    }
+
+    for additional_tag in config["additional_tags"]:
+        tags.update({additional_tag["key"]: additional_tag["value"]})
+
+    return tags
