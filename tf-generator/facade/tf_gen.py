@@ -6,6 +6,7 @@ from constants.defaults import DEFAULT_CIDR_BLOCK
 from util.aws import get_aws_availability_zones, get_aws_roles
 from util.tf_string_builder import TFStringBuilder
 
+
 _steps_registry = [
     "_generate_tf_header",
     "_generate_aws_provider",
@@ -347,3 +348,15 @@ def _output_to_tf_file(output_string, region_name):
         os.makedirs(f"./{region_name}")
     with open(f"./{region_name}/main.tf", "w+") as file:
         file.write(output_string)
+
+
+def _get_tags(config):
+    tags = {
+        "resource_owner": config["resource_owner"],
+        "environment": config["environment"] if "environment" in config else "dev",
+    }
+
+    for additional_tag in config["additional_tags"]:
+        tags.update({additional_tag["key"]: additional_tag["value"]})
+
+    return tags
