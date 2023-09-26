@@ -125,7 +125,7 @@ def _generate_k8s_namespaces(config):
     output = ""
     output += TFStringBuilder.generate_data("eks_cluster", "cluster", cluster_datapoint_config)
     output += TFStringBuilder.generate_provider("kubernetes", k8s_provider_config)
-    
+
     for ns_config in k8s_ns_configs:
         output += TFStringBuilder.generate_resource("kubernetes_namespace", ns_config["metadata"]["name"], ns_config)
 
@@ -273,3 +273,4 @@ def _get_tags(config):
         tags.update({additional_tag["key"]: additional_tag["value"]})
 
     return tags
+
