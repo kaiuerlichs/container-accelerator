@@ -99,14 +99,3 @@ def ping_alb(alb_dns_name):
     
 
     
-
-if __name__ == "__main__":
-    data = load_json_data("test.json")
-    availability_zones = load_availability_zones("check.yaml")
-    subnet_availability_zones = create_subnet_availability_zones(data)
-
-    check_vpc(data)
-    check_subnet(data)
-    check_alb(data)
-    check_eks(data)
-    check_subnet_availability_zones(subnet_availability_zones)
