@@ -42,7 +42,7 @@ additional_tags:
     value: my-value
 
 # Roles and Permissions
-developer_iam_role_arn: arn:aws:iam::745519854668:role/aws-service-role/support.amazonaws.com/AWSServiceRoleForSupport
-administrator_iam_role_arn: arn:aws:iam::745519854668:role/aws-service-role/support.amazonaws.com/AWSServiceRoleForSupport
+ca_cluster_admin_role_name: ca_cluster_admin
+ca_cluster_dev_role_name: ca_cluster_dev
 access_token_key: ACCESS_TOKEN # The key that refers to the secret stored in GitHub Secrets - THIS IS NOT A CREDENTIAL
 secret_token_key: SECRET_TOKEN # The key that refers to the secret stored in GitHub Secrets - THIS IS NOT A CREDENTIAL
