@@ -6,6 +6,7 @@ from constants.defaults import DEFAULT_CIDR_BLOCK
 from util.aws import get_aws_availability_zones
 from util.tf_string_builder import TFStringBuilder
 
+
 _steps_registry = [
     "_generate_tf_header",
     "_generate_aws_provider",
@@ -81,7 +82,7 @@ def _generate_k8s_namespaces(config):
     output = ""
     output += TFStringBuilder.generate_data("eks_cluster", "cluster", cluster_datapoint_config)
     output += TFStringBuilder.generate_provider("kubernetes", k8s_provider_config)
-
+    
     for ns_config in k8s_ns_configs:
         output += TFStringBuilder.generate_resource("kubernetes_namespace", ns_config["metadata"]["name"], ns_config)
 
