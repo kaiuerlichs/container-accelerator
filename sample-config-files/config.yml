@@ -42,7 +42,7 @@ additional_tags:
     value: my-value
 
 # Roles and Permissions
-ca_cluster_admin_role_name: ca_cluster_admin
-ca_cluster_dev_role_name: ca_cluster_dev
+ca_cluster_admin_role_name: ca_cluster_admin # defaults to ca_cluster_admin
+ca_cluster_dev_role_name: ca_cluster_dev # defaults to ca_cluster_dev
 access_token_key: ACCESS_TOKEN # The key that refers to the secret stored in GitHub Secrets - THIS IS NOT A CREDENTIAL
 secret_token_key: SECRET_TOKEN # The key that refers to the secret stored in GitHub Secrets - THIS IS NOT A CREDENTIAL
