@@ -1,4 +1,5 @@
 import ipaddress
+import logging
 import math
 import os
 
@@ -25,6 +26,7 @@ def generate_tf_from_yaml(config: dict) -> str:
     """
     output_buffer = ""
     for step in _steps_registry:
+        logging.debug(f"generate_tf_from_yaml - On Step: {step}")
         output_buffer += eval(f"{step}(config)")  # Execute each step in the registry passing the dictionary to each
     _output_to_tf_file(output_buffer, config["aws_region"])
 
@@ -44,7 +46,7 @@ def _generate_eks_modules(config):
     eks_config["subnets"] = ("aws_subnet.private_subnet[*].id", "ref")
     eks_config["vpc_id"] = ("aws_vpc.vpc.id", "ref")
 
-    if (not config["fargate"] if "fargate" in config else True):
+    if not config["fargate"] if "fargate" in config else True:
         eks_config["eks_managed_node_groups"] = {
             group["name"]: {
                 "min_size": group["min_size"],
