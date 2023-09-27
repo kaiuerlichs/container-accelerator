@@ -3,9 +3,8 @@ import math
 import os
 
 from constants.defaults import DEFAULT_CIDR_BLOCK
-from util.aws import get_aws_availability_zones
+from util.aws import get_aws_availability_zones, get_aws_roles
 from util.tf_string_builder import TFStringBuilder
-
 
 _steps_registry = [
     "_generate_tf_header",
@@ -82,7 +81,7 @@ def _generate_k8s_namespaces(config):
     output = ""
     output += TFStringBuilder.generate_data("eks_cluster", "cluster", cluster_datapoint_config)
     output += TFStringBuilder.generate_provider("kubernetes", k8s_provider_config)
-    
+
     for ns_config in k8s_ns_configs:
         output += TFStringBuilder.generate_resource("kubernetes_namespace", ns_config["metadata"]["name"], ns_config)
 
@@ -202,6 +201,16 @@ def _generate_iam_roles(config: dict) -> str:
     :param config: YAML Config dict
     :return: Blocks of IAM roles
     """
+    role_name_admin = config['ca_cluster_admin_role_name'] if config['ca_cluster_admin_role_name'] is not None else \
+        "ca_cluster_admin"
+    role_name_dev = config['ca_cluster_dev_role_name'] if config['ca_cluster_dev_role_name'] is not None else \
+        "ca_cluster_dev"
+    admin_exists = False
+    dev_exists = False
+    roles = get_aws_roles()
+    for role in roles:
+        admin_exists |= (role.RoleName == role_name_admin)
+        dev_exists |= (role.RoleName == role_name_dev)
     output = ""
     output += TFStringBuilder.generate_data("aws_iam_policy_document", "cluster_admin_policy_doc", {
         "statement": {
@@ -227,14 +236,32 @@ def _generate_iam_roles(config: dict) -> str:
         "description": "Access to K8s CLI for Cluster",
         "policy": ("data.aws_iam_policy_document.cluster_dev_policy_doc.json", "ref")
     })
-    output += TFStringBuilder.generate_resource("aws_iam_role", "ca_cluster_admin_role", {
-        "name": "cluster admin role",
-        "managed_policy_arns": [("aws_iam_policy.ca_cluster_admin_policy.arn", "ref")]
-    })
-    output += TFStringBuilder.generate_resource("aws_iam_role", "ca_cluster_dev_role", {
-        "name": "cluster dev role",
-        "managed_policy_arns": [("aws_iam_policy.ca_cluster_dev_policy.arn", "ref")]
-    })
+    if not admin_exists:
+        output += TFStringBuilder.generate_resource("aws_iam_role", "ca_cluster_admin_role", {
+            "name": role_name_admin,
+            "managed_policy_arns": [("aws_iam_policy.ca_cluster_admin_policy.arn", "ref")]
+        })
+    else:
+        output += TFStringBuilder.generate_resource("aws_iam_policy_attachment",
+                                                    "ca_cluster_admin_role_attach", {
+                                                        "name": "cluster admin role",
+                                                        "roles": [(role_name_admin, "ref")],
+                                                        "policy_arn":
+                                                            ("aws_iam_policy.ca_cluster_admin_policy.arn", "ref")
+                                                    })
+    if not dev_exists:
+        output += TFStringBuilder.generate_resource("aws_iam_role", "ca_cluster_dev_role", {
+            "name": role_name_dev,
+            "managed_policy_arns": [("aws_iam_policy.ca_cluster_dev_policy.arn", "ref")]
+        })
+    else:
+        output += TFStringBuilder.generate_resource("aws_iam_policy_attachment",
+                                                    "ca_cluster_admin_role_attach", {
+                                                        "name": "cluster dev role",
+                                                        "roles": [(role_name_dev, "ref")],
+                                                        "policy_arn":
+                                                            ("aws_iam_policy.ca_cluster_dev_policy.arn", "ref")
+                                                    })
     return output
 
 
