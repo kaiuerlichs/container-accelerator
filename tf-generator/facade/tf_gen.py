@@ -115,23 +115,23 @@ def _generate_iam_roles(config: dict) -> str:
             "effect": "Allow"
         }
     })
-    output += TFStringBuilder.generate_resource("aws_iam_policy", "cluster_admin_policy", {
+    output += TFStringBuilder.generate_resource("aws_iam_policy", "ca_cluster_admin_policy", {
         "name": "cluster admin policy",
         "description": "All Access to Cluster",
         "policy": ("data.aws_iam_policy_document.cluster_admin_policy_doc.json", "ref")
     })
-    output += TFStringBuilder.generate_resource("aws_iam_policy", "cluster_dev_policy", {
+    output += TFStringBuilder.generate_resource("aws_iam_policy", "ca_cluster_dev_policy", {
         "name": "cluster dev policy",
         "description": "Access to K8s CLI for Cluster",
         "policy": ("data.aws_iam_policy_document.cluster_dev_policy_doc.json", "ref")
     })
-    output += TFStringBuilder.generate_resource("aws_iam_role", "cluster_admin_role", {
+    output += TFStringBuilder.generate_resource("aws_iam_role", "ca_cluster_admin_role", {
         "name": "cluster admin role",
-        "managed_policy_arns": [("aws_iam_policy.cluster_admin_policy.arn", "ref")]
+        "managed_policy_arns": [("aws_iam_policy.ca_cluster_admin_policy.arn", "ref")]
     })
-    output += TFStringBuilder.generate_resource("aws_iam_role", "cluster_dev_role", {
+    output += TFStringBuilder.generate_resource("aws_iam_role", "ca_cluster_dev_role", {
         "name": "cluster dev role",
-        "managed_policy_arns": [("aws_iam_policy.cluster_dev_policy.arn", "ref")]
+        "managed_policy_arns": [("aws_iam_policy.ca_cluster_dev_policy.arn", "ref")]
     })
     return output
 
