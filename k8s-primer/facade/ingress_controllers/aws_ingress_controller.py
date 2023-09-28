@@ -55,7 +55,7 @@ class AWSIngressController(IngressControllerBase):
     def _install_eksctl(self):
         # check if eksctl is installed
         try:
-            subprocess.run("eksctl version", shell=True, check=True)
+            subprocess.run("eksctl version", shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             logger.info("eksctl is already installed")
             return
         
@@ -67,9 +67,9 @@ class AWSIngressController(IngressControllerBase):
             move_command = f'sudo mv /tmp/eksctl /usr/local/bin'
 
             try:
-                subprocess.run(download_command, shell=True, check=True)
-                subprocess.run(unzip_command, shell=True, check=True)
-                subprocess.run(move_command, shell=True, check=True)
+                subprocess.run(download_command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                subprocess.run(unzip_command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                subprocess.run(move_command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 logger.info("eksctl installed successfully")
             except Exception as e:
                 logger.exception("Failed to install eksctl")
@@ -79,7 +79,7 @@ class AWSIngressController(IngressControllerBase):
         oidc_command = f'eksctl utils associate-iam-oidc-provider --cluster {self.cluster_name} --approve'
 
         try:
-            subprocess.run(oidc_command, shell=True, check=True)
+            subprocess.run(oidc_command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             logger.info("OIDC provider for AWS ingress controller created successfully")
         except Exception as e:
             logger.exception("Failed to create OIDC provider for AWS ingress controller")
@@ -92,7 +92,7 @@ class AWSIngressController(IngressControllerBase):
         policy_command = f'aws iam create-policy --policy-name AWSLoadBalancerControllerIAMPolicy --policy-document file://{policy_path}'
         
         try:
-            subprocess.run(policy_command, shell=True, check=True)
+            subprocess.run(policy_command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             logger.info("IAM policy for AWS ingress controller created successfully")
         except Exception as e:
             logger.exception("Failed to create IAM policy for AWS ingress controller")
@@ -100,7 +100,7 @@ class AWSIngressController(IngressControllerBase):
 
     def _create_service_account(self):
         account_id_command = 'aws sts get-caller-identity --query Account --output text'
-        account_id = subprocess.check_output(account_id_command, shell=True).decode().strip()
+        account_id = subprocess.check_output(account_id_command, shell=True, stderr=subprocess.PIPE).decode().strip()
 
         sa_command = f'eksctl create iamserviceaccount\
             --cluster {self.cluster_name}\
@@ -111,7 +111,7 @@ class AWSIngressController(IngressControllerBase):
             --approve'
         
         try:
-            subprocess.run(sa_command, shell=True, check=True)
+            subprocess.run(sa_command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             logger.info("Service account for AWS ingress controller created successfully")
         except Exception as e:
             logger.exception("Failed to create service account for AWS ingress controller")

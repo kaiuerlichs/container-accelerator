@@ -67,7 +67,7 @@ class IngressControllerBase:
                 helm_command += f" --set {key}={value}"
 
         try:
-            subprocess.run(helm_command, shell=True, check=True)
+            subprocess.run(helm_command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             logger.info(f"{self.name} installed successfully")
         except Exception as e:
             logger.exception(f"Failed to install {self.name}")
