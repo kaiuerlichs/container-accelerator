@@ -290,8 +290,8 @@ def _generate_aws_provider(config: dict) -> str:
     :return: Block of Provider
     """
     return TFStringBuilder.generate_provider("aws", {
-        "access_key": os.environ.get(config['access_token_key'], "ACCESS_TOKEN"),
-        "secret_key": os.environ.get(config['secret_token_key'], "SECRET_TOKEN"),
+        "access_key": os.environ.get(config['access_token_env_key'], "ACCESS_TOKEN"),
+        "secret_key": os.environ.get(config['secret_token_env_key'], "SECRET_TOKEN"),
         "region": config['aws_region'],
         "assume_role": {
             "role_arn": config['administrator_iam_role_arn']
