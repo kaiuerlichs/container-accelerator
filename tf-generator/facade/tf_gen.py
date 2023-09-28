@@ -8,8 +8,7 @@ from util.tf_string_builder import TFStringBuilder
 _steps_registry = [
     "_generate_tf_header",
     "_generate_eks_modules",
-    "_generate_k8s_namespaces",
-    "_generate_ingress_controller",
+    "_generate_ingress_controller_resources",
     "_generate_vpc_resource",
     "_generate_subnet_resources"
 ]
@@ -65,37 +64,13 @@ def _generate_eks_modules(config):
     return TFStringBuilder.generate_module("eks", source, version, eks_config)
 
 
-def _generate_k8s_namespaces(config):
-    cluster_datapoint_config = {
-        "name": ("module.eks.cluster_name", "ref")
-    }
-    k8s_provider_config = {
-        "host": ("data.eks_cluster.cluster.endpoint", "ref"),
-        "cluster_ca_certificate": ("base64decode(data.eks_cluster.cluster.certificate_authority.0.data)", "ref")
-    }
-    k8s_ns_configs = [{"metadata": {"name": ns}} for ns in config["cluster_namespaces"]]
-
-    output = ""
-    output += TFStringBuilder.generate_data("eks_cluster", "cluster", cluster_datapoint_config)
-    output += TFStringBuilder.generate_provider("kubernetes", k8s_provider_config)
-
-    for ns_config in k8s_ns_configs:
-        output += TFStringBuilder.generate_resource("kubernetes_namespace", ns_config["metadata"]["name"], ns_config)
-
-    return output
-
-
-def _generate_ingress_controller(config):
+def _generate_ingress_controller_resources(config):
     match config["ingress_type"]:
-        case "alb":
-            return _generate_alb_ingress_controller(config)
+        case "aws":
+            # Resources are created through k8s API at later stage
+            return ""
         case _:
             return ""
-
-
-def _generate_alb_ingress_controller(config):
-    # Will be done in CA-39
-    pass
 
 
 def _generate_vpc_resource(config):

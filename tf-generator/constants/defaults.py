@@ -10,5 +10,5 @@ VALID_EKS_VERSIONS = [
 ]
 
 VALID_INGRESS_TYPES = [
-    "alb"
+    "aws"
 ]
