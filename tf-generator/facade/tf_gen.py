@@ -60,8 +60,18 @@ def _generate_eks_modules(config):
                 "selectors": [{"namespace": ns} for ns in config["cluster_namespaces"]]
             }
         }
+    # Generate output block for EKS cluster name
+    output_eks_cluster_name = TFStringBuilder.generate_output("eks_cluster_name", eks_config["cluster_name"], description="EKS Cluster Name")
 
-    return TFStringBuilder.generate_module("eks", source, version, eks_config)
+    # Generate output block for EKS cluster state (assuming you have a state variable)
+    eks_cluster_state = "active"  # You need to obtain the actual state
+    output_eks_cluster_state = TFStringBuilder.generate_output("eks_cluster_state", eks_cluster_state, description="EKS Cluster State")
+
+    output = output_eks_cluster_name
+    output += TFStringBuilder.generate_module("eks", source, version, eks_config)
+
+    return output
+
 
 
 def _generate_ingress_controller_resources(config):
@@ -83,8 +93,11 @@ def _generate_vpc_resource(config):
         "cidr_block": str(config["cidr_block"]) if "cidr_block" in config else DEFAULT_CIDR_BLOCK
     }
 
-    return TFStringBuilder.generate_resource("aws_vpc", f"vpc_{config['aws_region']}", vpc_config)
+    output = TFStringBuilder.generate_output("vpc_id", "aws_vpc.vpc_{config['aws_region']}.id", description="VPC ID")
+    output += TFStringBuilder.generate_output("vpc_state", "aws_vpc.vpc_{config['aws_region']}.state",
+                                              description="VPC State")
 
+    return output + TFStringBuilder.generate_resource("aws_vpc", f"vpc_{config['aws_region']}", vpc_config)
 
 def _generate_subnet_resources(config):
     """
@@ -152,6 +165,23 @@ def _generate_subnet_resources(config):
     for i, subnet in enumerate(subnets):
         builder += TFStringBuilder.generate_resource("aws_subnet",
                                                      f"subnet_{i % 2}_{subnet['availability_zone']}", subnet)
+        subnet_index = i
+        output_subnet_id = TFStringBuilder.generate_output(f"subnet_{subnet_index}_id",
+                                                           f"aws_subnet.subne{subnet_index}.id",
+                                                           description=f"Subnet {subnet_index} ID")
+        builder += output_subnet_id
+
+        # Add output block for subnet state
+        output_subnet_state = TFStringBuilder.generate_output(f"subnet_{subnet_index}_state",
+                                                              f"aws_subnet.subnet_{subnet_index}.state",
+                                                              description=f"Subnet {subnet_index} State")
+        builder += output_subnet_state
+
+        # Add output block for availability zone
+        output_availability_zone = TFStringBuilder.generate_output(f"subnet_{subnet_index}_availability_zone",
+                                                                   subnet['availability_zone'],
+                                                                   description=f"Subnet {subnet_index} Availability Zone")
+        builder += output_availability_zone
     return builder
 
 
