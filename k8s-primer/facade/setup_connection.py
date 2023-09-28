@@ -1,7 +1,16 @@
 import os
+import logging
 import subprocess
 from kubernetes import config as k8s_config
 
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    filename="run.log"
+)
 
 def initialise_k8s_connection(cluster_name, region):
     current_path = os.getcwd()
@@ -10,8 +19,11 @@ def initialise_k8s_connection(cluster_name, region):
     try:
         _generate_kubeconfig_file(cluster_name, region, kubeconfig_path)
         k8s_config.load_kube_config(config_file=kubeconfig_path)
+        logger.info("Kubeconfig loaded successfully")
+        
     except Exception as e:
-        raise RuntimeError(f"Failed to initialise k8s connection: {e}")
+        logger.exception("Failed to load kubeconfig")
+        quit(1)
 
 
 def _generate_kubeconfig_file(cluster_name, region, kubeconfig_path):

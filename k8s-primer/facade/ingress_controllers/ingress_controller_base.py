@@ -1,4 +1,14 @@
+import logging
 import subprocess
+
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    filename="run.log"
+)
 
 
 class IngressControllerBase:
@@ -25,6 +35,7 @@ class IngressControllerBase:
         pass
 
     def _helm_install(self):
+        logger.info(f"Installing {self.name}")
         helm_command = f"helm install {self.name} {self.helm_chart}\
                         --repo {self.helm_repo}\
                         -n {self.namespace}"
@@ -36,4 +47,9 @@ class IngressControllerBase:
             for key, value in self.set_flags.items():
                 helm_command += f" --set {key}={value}"
 
-        subprocess.run(helm_command, shell=True, check=True)
+        try:
+            subprocess.run(helm_command, shell=True, check=True)
+            logger.info(f"{self.name} installed successfully")
+        except Exception as e:
+            logger.exception(f"Failed to install {self.name}")
+            quit(1)

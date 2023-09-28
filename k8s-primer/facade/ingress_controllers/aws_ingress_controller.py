@@ -1,6 +1,16 @@
 import os
+import logging
 import subprocess
 from facade.ingress_controllers.ingress_controller_base import IngressControllerBase
+
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    filename="run.log"
+)
 
 
 class AWSIngressController(IngressControllerBase):
@@ -25,15 +35,18 @@ class AWSIngressController(IngressControllerBase):
         self.region = region
 
     def _pre_install_tasks(self):
+        logger.info("Starting pre-install tasks")
         self._install_eksctl()
         self._create_oidc_provider()
         self._create_iam_policy()
         self._create_service_account()
+        logger.info("Pre-install tasks complete")
 
     def _install_eksctl(self):
         # check if eksctl is installed
         try:
             subprocess.run("eksctl version", shell=True, check=True)
+            logger.info("eksctl is already installed")
             return
         
         except Exception as e:
@@ -43,22 +56,37 @@ class AWSIngressController(IngressControllerBase):
             unzip_command = f'tar -xzf eksctl_{platform}.tar.gz -C /tmp && rm eksctl_{platform}.tar.gz'
             move_command = f'sudo mv /tmp/eksctl /usr/local/bin'
 
-            subprocess.run(download_command, shell=True, check=True)
-            subprocess.run(unzip_command, shell=True, check=True)
-            subprocess.run(move_command, shell=True, check=True)
+            try:
+                subprocess.run(download_command, shell=True, check=True)
+                subprocess.run(unzip_command, shell=True, check=True)
+                subprocess.run(move_command, shell=True, check=True)
+                logger.info("eksctl installed successfully")
+            except Exception as e:
+                logger.exception("Failed to install eksctl")
+                quit(1)
 
     def _create_oidc_provider(self):
         oidc_command = f'eksctl utils associate-iam-oidc-provider --cluster {self.cluster_name} --approve'
-        subprocess.run(oidc_command, shell=True, check=True)
-        print("Created OIDC provider")
+
+        try:
+            subprocess.run(oidc_command, shell=True, check=True)
+            logger.info("OIDC provider for AWS ingress controller created successfully")
+        except Exception as e:
+            logger.exception("Failed to create OIDC provider for AWS ingress controller")
+            quit(1)
 
     def _create_iam_policy(self):
         cwd = os.path.dirname(os.path.abspath(__file__))
         policy_path = os.path.join(cwd, "../../static/iam_policy.json")
 
         policy_command = f'aws iam create-policy --policy-name AWSLoadBalancerControllerIAMPolicy --policy-document file://{policy_path}'
-        subprocess.run(policy_command, shell=True, check=True)
-        print("Created IAM policy")
+        
+        try:
+            subprocess.run(policy_command, shell=True, check=True)
+            logger.info("IAM policy for AWS ingress controller created successfully")
+        except Exception as e:
+            logger.exception("Failed to create IAM policy for AWS ingress controller")
+            quit(1)
 
     def _create_service_account(self):
         account_id_command = 'aws sts get-caller-identity --query Account --output text'
@@ -71,5 +99,10 @@ class AWSIngressController(IngressControllerBase):
             --attach-policy-arn arn:aws:iam::{account_id}:policy/AWSLoadBalancerControllerIAMPolicy\
             --override-existing-serviceaccounts\
             --approve'
-        subprocess.run(sa_command, shell=True, check=True)
-        print("Created service account")
+        
+        try:
+            subprocess.run(sa_command, shell=True, check=True)
+            logger.info("Service account for AWS ingress controller created successfully")
+        except Exception as e:
+            logger.exception("Failed to create service account for AWS ingress controller")
+            quit(1)
