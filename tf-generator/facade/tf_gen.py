@@ -67,14 +67,10 @@ def _generate_eks_modules(config):
 def _generate_ingress_controller_resources(config):
     match config["ingress_type"]:
         case "aws":
-            return _generate_alb_ingress_controller_resources(config)
+            # Resources are created through k8s API at later stage
+            return ""
         case _:
             return ""
-
-
-def _generate_alb_ingress_controller_resources(config):
-    # Will be done in CA-39
-    pass
 
 
 def _generate_vpc_resource(config):
