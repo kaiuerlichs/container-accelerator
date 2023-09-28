@@ -12,6 +12,13 @@ logging.basicConfig(
 
 
 def create_ingress_controller(ingress_type, cluster_name, region, vpc_id=None):
+    """Creates and installs an ingress controller
+
+    :param ingress_type: The type of ingress controller to create
+    :param cluster_name: The name of the cluster to install into
+    :param region: The AWS region the cluster is in
+    :param vpc_id: The ID of the VPC the cluster is in, defaults to None
+    """
     match ingress_type:
         case "aws":
             controller = AWSIngressController(

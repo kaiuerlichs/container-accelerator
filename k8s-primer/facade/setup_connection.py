@@ -13,6 +13,11 @@ logging.basicConfig(
 )
 
 def initialise_k8s_connection(cluster_name, region):
+    """Initialises the connection to the k8s cluster
+
+    :param cluster_name: The name of the cluster
+    :param region: The AWS region the cluster is in
+    """
     current_path = os.getcwd()
     kubeconfig_path = os.path.join(current_path, 'kubeconfig')
 

@@ -12,6 +12,10 @@ logging.basicConfig(
 
 
 class IngressControllerBase:
+    """
+    The IngressControllerBase class defines a common interface for all Ingress Controller
+    classes to implement, and provides install via Helm and pre-install tasks
+    """
     def __init__(self, 
                  name: str,
                  helm_repo: str, 
@@ -20,6 +24,15 @@ class IngressControllerBase:
                  chart_version: str = None,
                  set_flags: dict = None
                  ):
+        """Constructor for the IngressControllerBase class
+
+        :param name: The name of the Ingress Controller deployment in the cluster
+        :param helm_repo: The repo to install the Helm chart from
+        :param helm_chart: The name of the Helm chart to install
+        :param namespace: The namespace to install into, defaults to "kube-system"
+        :param chart_version: The version number of the helm chart, defaults to None
+        :param set_flags: A list of --set attributes to add to the Helm install, defaults to None
+        """
         self.name = name
         self.namespace = namespace
         self.helm_repo = helm_repo
@@ -28,10 +41,16 @@ class IngressControllerBase:
         self.set_flags = set_flags
 
     def install(self):
+        """
+        Installs the Ingress Controller into the cluster
+        """
         self._pre_install_tasks()
         self._helm_install()
 
     def _pre_install_tasks(self):
+        """
+        Override this function definition in the inheriting class to perform any pre-install tasks
+        """
         pass
 
     def _helm_install(self):

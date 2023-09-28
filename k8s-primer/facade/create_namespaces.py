@@ -12,6 +12,10 @@ logging.basicConfig(
 
 
 def create_namespaces(namespaces_to_create: list):
+    """Creates k8s namespaces in the cluster
+
+    :param namespaces_to_create: List of namespaces to create
+    """
     v1 = k8s_client.CoreV1Api()
     try:
         existing_namespaces = [item.metadata.name for item in v1.list_namespace().items]

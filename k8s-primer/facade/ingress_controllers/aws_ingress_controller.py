@@ -14,7 +14,17 @@ logging.basicConfig(
 
 
 class AWSIngressController(IngressControllerBase):
+    """
+    The AWS Ingress Controller class is used to install the AWS Load Balancer Controller
+    into a EKS cluster using Helm
+    """
     def __init__(self, cluster_name, region, vpc_id=None):
+        """Constructor for the AWSIngressController class
+
+        :param cluster_name: The name of the cluster to install into
+        :param region: The AWS region the cluster is in
+        :param vpc_id: The ID of the VPC the cluster is in, defaults to None
+        """
         set_flags = {
             "clusterName": cluster_name,
             "region": region,
