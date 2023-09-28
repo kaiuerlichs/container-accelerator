@@ -8,8 +8,7 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-    filename="run.log"
+    datefmt="%Y-%m-%d %H:%M:%S"
 )
 
 def initialise_k8s_connection(cluster_name, region):
