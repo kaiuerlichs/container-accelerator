@@ -15,5 +15,5 @@ def initialise_k8s_connection(cluster_name, region):
 
 
 def _generate_kubeconfig_file(cluster_name, region, kubeconfig_path):
-    command = ['aws', 'eks', 'update-kubeconfig', '--name', cluster_name, '--region', region, '--kubeconfig', kubeconfig_path]
+    command = f'aws eks update-kubeconfig --name {cluster_name} --region {region} --kubeconfig {kubeconfig_path}'
     subprocess.run(command, shell=True, check=True)
