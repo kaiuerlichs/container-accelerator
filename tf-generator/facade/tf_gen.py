@@ -10,8 +10,7 @@ _steps_registry = [
     "_generate_tf_header",
     "_generate_aws_provider",
     "_generate_eks_modules",
-    "_generate_k8s_namespaces",
-    "_generate_ingress_controller",
+    "_generate_ingress_controller_resources",
     "_generate_vpc_resource",
     "_generate_subnet_resources",
     "_generate_iam_roles"
@@ -27,7 +26,7 @@ def generate_tf_from_yaml(config: dict) -> str:
     output_buffer = ""
     for step in _steps_registry:
         output_buffer += eval(f"{step}(config)")  # Execute each step in the registry passing the dictionary to each
-    return output_buffer
+    _output_to_tf_file(output_buffer, config["aws_region"])
 
 
 def _generate_tf_header(config: dict) -> str:
@@ -64,41 +63,28 @@ def _generate_eks_modules(config):
                 "selectors": [{"namespace": ns} for ns in config["cluster_namespaces"]]
             }
         }
+    # Generate output block for EKS cluster name
+    output_eks_cluster_name = TFStringBuilder.generate_output("eks_cluster_name", eks_config["cluster_name"],
+                                                              description="EKS Cluster Name")
 
-    return TFStringBuilder.generate_module("eks", source, version, eks_config)
+    # Generate output block for EKS cluster state (assuming you have a state variable)
+    eks_cluster_state = "active"  # You need to obtain the actual state
+    output_eks_cluster_state = TFStringBuilder.generate_output("eks_cluster_state", eks_cluster_state,
+                                                               description="EKS Cluster State")
 
-
-def _generate_k8s_namespaces(config):
-    cluster_datapoint_config = {
-        "name": ("module.eks.cluster_name", "ref")
-    }
-    k8s_provider_config = {
-        "host": ("data.eks_cluster.cluster.endpoint", "ref"),
-        "cluster_ca_certificate": ("base64decode(data.eks_cluster.cluster.certificate_authority.0.data)", "ref")
-    }
-    k8s_ns_configs = [{"metadata": {"name": ns}} for ns in config["cluster_namespaces"]]
-
-    output = ""
-    output += TFStringBuilder.generate_data("eks_cluster", "cluster", cluster_datapoint_config)
-    output += TFStringBuilder.generate_provider("kubernetes", k8s_provider_config)
-
-    for ns_config in k8s_ns_configs:
-        output += TFStringBuilder.generate_resource("kubernetes_namespace", ns_config["metadata"]["name"], ns_config)
+    output = output_eks_cluster_name
+    output += TFStringBuilder.generate_module("eks", source, version, eks_config)
 
     return output
 
 
-def _generate_ingress_controller(config):
+def _generate_ingress_controller_resources(config):
     match config["ingress_type"]:
-        case "alb":
-            return _generate_alb_ingress_controller(config)
+        case "aws":
+            # Resources are created through k8s API at later stage
+            return ""
         case _:
             return ""
-
-
-def _generate_alb_ingress_controller(config):
-    # Will be done in CA-39
-    pass
 
 
 def _generate_vpc_resource(config):
@@ -111,7 +97,11 @@ def _generate_vpc_resource(config):
         "cidr_block": str(config["cidr_block"]) if "cidr_block" in config else DEFAULT_CIDR_BLOCK
     }
 
-    return TFStringBuilder.generate_resource("aws_vpc", f"vpc_{config['aws_region']}", vpc_config)
+    output = TFStringBuilder.generate_output("vpc_id", f"aws_vpc.vpc_{config['aws_region']}.id", description="VPC ID")
+    output += TFStringBuilder.generate_output("vpc_state", f"aws_vpc.vpc_{config['aws_region']}.state",
+                                              description="VPC State")
+
+    return output + TFStringBuilder.generate_resource("aws_vpc", f"vpc_{config['aws_region']}", vpc_config)
 
 
 def _generate_subnet_resources(config):
@@ -180,6 +170,23 @@ def _generate_subnet_resources(config):
     for i, subnet in enumerate(subnets):
         builder += TFStringBuilder.generate_resource("aws_subnet",
                                                      f"subnet_{i % 2}_{subnet['availability_zone']}", subnet)
+        subnet_index = i
+        output_subnet_id = TFStringBuilder.generate_output(f"subnet_{subnet_index}_id",
+                                                           f"aws_subnet.subne{subnet_index}.id",
+                                                           description=f"Subnet {subnet_index} ID")
+        builder += output_subnet_id
+
+        # Add output block for subnet state
+        output_subnet_state = TFStringBuilder.generate_output(f"subnet_{subnet_index}_state",
+                                                              f"aws_subnet.subnet_{subnet_index}.state",
+                                                              description=f"Subnet {subnet_index} State")
+        builder += output_subnet_state
+
+        # Add output block for availability zone
+        output_availability_zone = TFStringBuilder.generate_output(f"subnet_{subnet_index}_availability_zone",
+                                                                   subnet['availability_zone'],
+                                                                   description=f"Subnet {subnet_index} Availability Zone")
+        builder += output_availability_zone
     return builder
 
 
@@ -297,3 +304,15 @@ def _generate_aws_provider(config: dict) -> str:
             "role_arn": config['administrator_iam_role_arn']
         } if config['administrator_iam_role_arn'] is not None else None
     })
+
+def _output_to_tf_file(output_string, region_name):
+    """
+    Method for outputting the final string to a terraform file
+    :param output_string: The string to output
+    :param region_name: The region the infrastructure is deployed to
+    """
+    print("Writing output to file")
+    if not os.path.exists(f"./{region_name}"):
+        os.makedirs(f"./{region_name}")
+    with open(f"./{region_name}/main.tf", "w+") as file:
+        file.write(output_string)
