@@ -39,8 +39,12 @@ def generate_tf_from_yaml(config: dict):
 
 
 def _generate_tf_header(config: dict) -> str:
-    # TODO: Complete Method
-    return ""
+    """
+    Generate the empty header block for TF
+    :param config: config file
+    :return: TF String
+    """
+    return TFStringBuilder.generate_tf_header({})
 
 
 def _generate_eks_modules(config):
