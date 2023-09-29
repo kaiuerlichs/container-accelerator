@@ -7,6 +7,14 @@ from constants.defaults import DEFAULT_CIDR_BLOCK
 from util.aws import get_aws_availability_zones, get_aws_roles
 from util.tf_string_builder import TFStringBuilder
 
+if logger is None:
+    logger = logging.getLogger(__name__)
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] (tf_gen - facade) %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S"
+    )
+
 _steps_registry = [
     "_generate_tf_header",
     "_generate_aws_provider",
