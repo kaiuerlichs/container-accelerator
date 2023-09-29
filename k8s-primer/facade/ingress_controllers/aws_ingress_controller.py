@@ -60,7 +60,7 @@ class AWSIngressController(IngressControllerBase):
         
         except Exception as e:
             # Install eksctl
-            platform = "Linux_arm64"
+            platform = "Linux_amd64"
             download_command = f'curl -sLO "https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_{platform}.tar.gz"'
             unzip_command = f'tar -xzf eksctl_{platform}.tar.gz -C /tmp && rm eksctl_{platform}.tar.gz'
             move_command = f'sudo mv /tmp/eksctl /usr/local/bin'
