@@ -1,5 +1,6 @@
 import ipaddress
 import math
+import os
 
 from constants.defaults import DEFAULT_CIDR_BLOCK
 from util.aws import get_aws_availability_zones
@@ -23,7 +24,7 @@ def generate_tf_from_yaml(config: dict) -> str:
     output_buffer = ""
     for step in _steps_registry:
         output_buffer += eval(f"{step}(config)")  # Execute each step in the registry passing the dictionary to each
-    return output_buffer
+    _output_to_tf_file(output_buffer, config["aws_region"])
 
 
 def _generate_tf_header(config: dict) -> str:
@@ -61,17 +62,18 @@ def _generate_eks_modules(config):
             }
         }
     # Generate output block for EKS cluster name
-    output_eks_cluster_name = TFStringBuilder.generate_output("eks_cluster_name", eks_config["cluster_name"], description="EKS Cluster Name")
+    output_eks_cluster_name = TFStringBuilder.generate_output("eks_cluster_name", eks_config["cluster_name"],
+                                                              description="EKS Cluster Name")
 
     # Generate output block for EKS cluster state (assuming you have a state variable)
     eks_cluster_state = "active"  # You need to obtain the actual state
-    output_eks_cluster_state = TFStringBuilder.generate_output("eks_cluster_state", eks_cluster_state, description="EKS Cluster State")
+    output_eks_cluster_state = TFStringBuilder.generate_output("eks_cluster_state", eks_cluster_state,
+                                                               description="EKS Cluster State")
 
     output = output_eks_cluster_name
     output += TFStringBuilder.generate_module("eks", source, version, eks_config)
 
     return output
-
 
 
 def _generate_ingress_controller_resources(config):
@@ -93,11 +95,12 @@ def _generate_vpc_resource(config):
         "cidr_block": str(config["cidr_block"]) if "cidr_block" in config else DEFAULT_CIDR_BLOCK
     }
 
-    output = TFStringBuilder.generate_output("vpc_id", "aws_vpc.vpc_{config['aws_region']}.id", description="VPC ID")
-    output += TFStringBuilder.generate_output("vpc_state", "aws_vpc.vpc_{config['aws_region']}.state",
+    output = TFStringBuilder.generate_output("vpc_id", f"aws_vpc.vpc_{config['aws_region']}.id", description="VPC ID")
+    output += TFStringBuilder.generate_output("vpc_state", f"aws_vpc.vpc_{config['aws_region']}.state",
                                               description="VPC State")
 
     return output + TFStringBuilder.generate_resource("aws_vpc", f"vpc_{config['aws_region']}", vpc_config)
+
 
 def _generate_subnet_resources(config):
     """
@@ -195,3 +198,16 @@ def _generate_base_address(sub_network_index, network, num_modifiable_bits, netw
     """
     return ((sub_network_index << (network.prefixlen - int(num_modifiable_bits))) |
             network_as_int)
+
+
+def _output_to_tf_file(output_string, region_name):
+    """
+    Method for outputting the final string to a terraform file
+    :param output_string: The string to output
+    :param region_name: The region the infrastructure is deployed to
+    """
+    print("Writing output to file")
+    if not os.path.exists(f"./{region_name}"):
+        os.makedirs(f"./{region_name}")
+    with open(f"./{region_name}/main.tf", "w+") as file:
+        file.write(output_string)

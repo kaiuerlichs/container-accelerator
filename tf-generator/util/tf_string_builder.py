@@ -173,7 +173,7 @@ class TFStringBuilder:
         return output
 
     @staticmethod
-    def generate_output(local_name: str, value_ref: str, args: dict = None, description: str = None,
+    def generate_output(local_name: str, value_ref: str, args: dict = {}, description: str = None,
                         sensitive: bool = None, depends_on: list = None) -> str:
         """
         Generate the TF Config string for an Output Block based on its arguments
