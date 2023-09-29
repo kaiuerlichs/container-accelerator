@@ -17,7 +17,6 @@ _steps_registry = [
     "_generate_iam_roles"
 ]
 
-
 def generate_tf_from_yaml(config: dict):
     """
     Main Generation Method Called from entrypoint with the configuration as a dictionary.
@@ -26,7 +25,7 @@ def generate_tf_from_yaml(config: dict):
     """
     output_buffer = ""
     for step in _steps_registry:
-        logging.debug(f"generate_tf_from_yaml - On Step: {step}")
+        logger.debug(f"generate_tf_from_yaml - On Step: {step}")
         output_buffer += eval(f"{step}(config)")  # Execute each step in the registry passing the dictionary to each
     _output_to_tf_file(output_buffer, config["aws_region"])
 
