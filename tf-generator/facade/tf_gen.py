@@ -95,11 +95,11 @@ def _generate_vpc_resource(config):
         "cidr_block": str(config["cidr_block"]) if "cidr_block" in config else DEFAULT_CIDR_BLOCK
     }
 
-    output = TFStringBuilder.generate_output("vpc_id", "aws_vpc.vpc_{config['aws_region']}.id", description="VPC ID")
-    output += TFStringBuilder.generate_output("vpc_state", "aws_vpc.vpc_{config['aws_region']}.state",
+    output = TFStringBuilder.generate_output("vpc_id", f"aws_vpc.vpc_{config['aws_region']}.id", description="VPC ID")
+    output += TFStringBuilder.generate_output("vpc_state", f"aws_vpc.vpc_{config['aws_region']}.state",
                                               description="VPC State")
 
-    return TFStringBuilder.generate_resource("aws_vpc", "vpc_{config['aws_region']}", vpc_config)
+    return output + TFStringBuilder.generate_resource("aws_vpc", f"vpc_{config['aws_region']}", vpc_config)
 
 
 def _generate_subnet_resources(config):
