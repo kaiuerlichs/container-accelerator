@@ -33,7 +33,7 @@ def generate_tf_from_yaml(config: dict):
     """
     output_buffer = ""
     for step in _steps_registry:
-        logger.debug(f"generate_tf_from_yaml - On Step: {step}")
+        logger.info(f"generate_tf_from_yaml - On Step: {step}")
         output_buffer += eval(f"{step}(config)")  # Execute each step in the registry passing the dictionary to each
     _output_to_tf_file(output_buffer, config["aws_region"])
 
