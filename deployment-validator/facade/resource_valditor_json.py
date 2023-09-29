@@ -1,21 +1,23 @@
 import json
 import yaml
 import requests
-import boto3 as boto
 from botocore.exceptions import ClientError
+
 
 # Load JSON data from the file
 def load_json_data(file_name):
     with open(file_name, 'r') as json_file:
         return json.load(json_file)
 
+
 # Load availability zones from a YAML file
 def load_availability_zones(file_name):
     with open(file_name, 'r') as yaml_file:
         return yaml.safe_load(yaml_file)
 
+
 # Creating a dictionary to store subnet IDs as keys and their associated availability zones
-#as values
+# as values
 def create_subnet_availability_zones(data):
     subnet_availability_zones = {}
     for subnet in data['SUBNET']:
@@ -24,6 +26,7 @@ def create_subnet_availability_zones(data):
             availability_zone = subnet['availabilityZone']
             subnet_availability_zones[subnet_id] = availability_zone
     return subnet_availability_zones
+
 
 # Check if a VPC exists and its state
 def check_vpc(data):
@@ -37,6 +40,7 @@ def check_vpc(data):
             print("VPC is missing ID or state")
     else:
         print("VPC does not exist")
+
 
 # Check if a SUBNET exists and its state
 def check_subnet(json_file):
@@ -52,6 +56,7 @@ def check_subnet(json_file):
     else:
         print("SUBNET does not exist")
 
+
 # Check if an ALB exists and its state
 def check_alb(json_file):
     if 'ALB' in json_file:
@@ -64,6 +69,7 @@ def check_alb(json_file):
             print("ALB is missing ID or state")
     else:
         print("ALB does not exist")
+
 
 # Check if an EKS exists and its state
 def check_eks(json_file):
@@ -78,16 +84,18 @@ def check_eks(json_file):
     else:
         print("EKS does not exist")
 
+
 # Check if each subnet has two availability zones
 def check_subnet_availability_zones(subnet_availability_zones):
     for subnet_id, zones in subnet_availability_zones.items():
         if len(zones) != 2:
             print(f"Subnet {subnet_id} does not have exactly two availability zones: {zones}")
 
+
 def ping_alb(alb_dns_name):
     try:
-        response = requests.get(url='http://'+ alb_dns_name +'/ping', timeout=(15,))
-        if response.text=='pong':
+        response = requests.get(url='http://' + alb_dns_name + '/ping', timeout=(15,))
+        if response.text == 'pong':
             print(f"ALB {alb_dns_name} is responding to pings.")
             return True
         else:
@@ -96,6 +104,3 @@ def ping_alb(alb_dns_name):
     except ClientError as e:
         print(f"An error occurred: {e}")
         return False
-    
-
-    
