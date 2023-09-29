@@ -16,7 +16,7 @@ _steps_registry = [
 ]
 
 
-def generate_tf_from_yaml(config: dict) -> str:
+def generate_tf_from_yaml(config: dict):
     """
     Main Generation Method Called from entrypoint with the configuration as a dictionary.
     :param config: Dictionary of the configuration file
