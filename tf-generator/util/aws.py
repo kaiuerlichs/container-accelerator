@@ -45,3 +45,22 @@ def get_aws_instance_types(region: str):
     )
     types = [type["InstanceType"] for type in response["InstanceTypeOfferings"]]
     return types
+
+
+def get_bucket_names() -> list:
+    s3 = boto3.client("s3")
+    return list(map(lambda bucket: bucket["Name"], s3.list_buckets()["Buckets"]))
+
+
+def get_dynamodb_tables() -> list:
+    dynamodb = boto3.client("dynamodb")
+
+    return dynamodb.list_tables()["TableNames"]
+
+
+def get_table_partition_key(table_name: str) -> str:
+    dynamodb = boto3.client("dynamodb")
+    keys = filter(lambda key: (key["KeyType"] == "HASH"), dynamodb.describe_table(TableName=table_name)["Table"][
+        "KeySchema"])
+    key = list(map(lambda key: key["AttributeName"], keys))[0]
+    return key

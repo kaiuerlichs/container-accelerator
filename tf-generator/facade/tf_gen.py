@@ -27,8 +27,26 @@ def generate_tf_from_yaml(config: dict) -> str:
 
 
 def _generate_tf_header(config: dict) -> str:
-    # TODO: Complete Method
-    return ""
+    header_args = {
+        "required_providers": (
+            {
+                "aws": {
+                    "source": "hashicorp/aws",
+                    "version": "~> 5.19.0"
+                }
+            },
+            "header"),
+        "backend \"s3\"": (
+            {
+                "bucket": config["bucket_name"],
+                "key": "state/terraform.state",
+                "region": config["aws_region"],
+                "encrypt": "true",
+                "dynamodb_table": config["dynamodb_table_name"]
+            },
+            "header")
+    }
+    return TFStringBuilder.generate_tf_header(header_args)
 
 
 def _generate_eks_modules(config):
@@ -61,17 +79,18 @@ def _generate_eks_modules(config):
             }
         }
     # Generate output block for EKS cluster name
-    output_eks_cluster_name = TFStringBuilder.generate_output("eks_cluster_name", eks_config["cluster_name"], description="EKS Cluster Name")
+    output_eks_cluster_name = TFStringBuilder.generate_output("eks_cluster_name", eks_config["cluster_name"],
+                                                              description="EKS Cluster Name")
 
     # Generate output block for EKS cluster state (assuming you have a state variable)
     eks_cluster_state = "active"  # You need to obtain the actual state
-    output_eks_cluster_state = TFStringBuilder.generate_output("eks_cluster_state", eks_cluster_state, description="EKS Cluster State")
+    output_eks_cluster_state = TFStringBuilder.generate_output("eks_cluster_state", eks_cluster_state,
+                                                               description="EKS Cluster State")
 
     output = output_eks_cluster_name
     output += TFStringBuilder.generate_module("eks", source, version, eks_config)
 
     return output
-
 
 
 def _generate_ingress_controller_resources(config):
@@ -98,6 +117,7 @@ def _generate_vpc_resource(config):
                                               description="VPC State")
 
     return output + TFStringBuilder.generate_resource("aws_vpc", f"vpc_{config['aws_region']}", vpc_config)
+
 
 def _generate_subnet_resources(config):
     """
