@@ -1,0 +1,48 @@
+# AWS configuration
+aws_region: us-east-1 # mandatory
+
+# VPC and Subnets
+cidr_block: 10.0.0.0/16 # defaults to 10.0.0.0/16
+availability_zones: # defaults to all available zones in the region
+  - us-east-1a
+  - us-east-1b
+  - us-east-1c
+  - us-east-1d
+  - us-east-1e
+  - us-east-1f
+
+# EKS configuration
+cluster_name: my-cluster # mandatory
+eks_version: 1.14 # defaults to latest
+fargate: false # defaults to false
+cluster_namespaces: # defaults to kube-system
+  - kube-system
+  - default
+ingress_type: alb # defaults to alb
+
+# node group configuration (only when fargate is false)
+node_groups:
+  - name: my-node-group # mandatory
+    instance_type: t3.medium # mandatory
+    min_size: 1 # mandatory
+    max_size: 3 # mandatory
+    desired_capacity: 2
+
+# Public ingress
+enable_public_ingress: true # defaults to false
+ingress_from_port: 80 # defaults to 80
+ingress_to_port: 80 # defaults to 80
+ingress_protocol: tcp # defaults to tcp
+
+# Tagging
+resource_owner: my-team # mandatory
+environment: dev # defaults to dev
+additional_tags:
+  - key: my-key
+    value: my-value
+
+# Roles and Permissions
+ca_cluster_admin_role_name: ca_cluster_admin # defaults to ca_cluster_admin
+ca_cluster_dev_role_name: ca_cluster_dev # defaults to ca_cluster_dev
+access_token_env_key: ACCESS_TOKEN # The key that refers to the secret stored in GitHub Secrets - THIS IS NOT A CREDENTIAL
+secret_token_env_key: SECRET_TOKEN # The key that refers to the secret stored in GitHub Secrets - THIS IS NOT A CREDENTIAL

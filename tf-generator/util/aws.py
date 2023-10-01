@@ -46,7 +46,6 @@ def get_aws_instance_types(region: str):
     types = [type["InstanceType"] for type in response["InstanceTypeOfferings"]]
     return types
 
-
 def get_bucket_names() -> list:
     s3 = boto3.client("s3")
     return list(map(lambda bucket: bucket["Name"], s3.list_buckets()["Buckets"]))
@@ -64,3 +63,12 @@ def get_table_partition_key(table_name: str) -> str:
         "KeySchema"])
     key = list(map(lambda key: key["AttributeName"], keys))[0]
     return key
+
+def get_aws_roles(prefix: str = None) -> dict:
+    """
+    Returns the list of roles that match the optional prefix.
+    :param prefix: Optional prefix to search for
+    :return: Dictionary of roles on the account
+    """
+    iam = boto3.client("iam")
+    return iam.list_roles(PathPrefix=prefix).Roles
