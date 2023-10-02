@@ -154,6 +154,7 @@ def _generate_vpc_resource(config):
     """
     vpc_config = {
         "cidr_block": str(config["cidr_block"]) if "cidr_block" in config else DEFAULT_CIDR_BLOCK
+        "tags": _get_tags(config)
     }
 
     output = TFStringBuilder.generate_output("vpc_id", f"aws_vpc.vpc_{config['aws_region']}.id", description="VPC ID")
@@ -274,3 +275,125 @@ def _get_tags(config):
 
     return tags
 
+
+def _generate_iam_roles(config: dict) -> str:
+    """
+    Generate the required blocks for 2 IAM roles that can interact with the generated EKS cluster
+    :param config: YAML Config dict
+    :return: Blocks of IAM roles
+    """
+    # Set the defaults for role names
+    role_name_admin = config['ca_cluster_admin_role_name'] if config['ca_cluster_admin_role_name'] is not None else \
+        "ca_cluster_admin"
+    role_name_dev = config['ca_cluster_dev_role_name'] if config['ca_cluster_dev_role_name'] is not None else \
+        "ca_cluster_dev"
+
+    # Check if roles exist
+    admin_exists = False
+    dev_exists = False
+    roles = get_aws_roles()
+    for role in roles:
+        admin_exists |= (role.RoleName == role_name_admin)
+        dev_exists |= (role.RoleName == role_name_dev)
+
+    output = ""
+
+    # Generate the policy documents for Administrator, Developer, and Service account
+    output += TFStringBuilder.generate_data("aws_iam_policy_document", "cluster_admin_policy_doc", {
+        "statement": {
+            "actions": ["eks:*"],
+            "resources": [("aws_eks_cluster.cluster.arn", "ref")],
+            "effect": "Allow"
+        }
+    })
+    output += TFStringBuilder.generate_data("aws_iam_policy_document", "cluster_dev_policy_doc", {
+        "statement": {
+            "actions": ["eks:AccessKubernetesApi"],
+            "resources": [("aws_eks_cluster.cluster.arn", "ref")],
+            "effect": "Allow"
+        }
+    })
+    output += TFStringBuilder.generate_data("aws_iam_policy_document", "cluster_policy_doc_assume_role", {
+        "statement": {
+            "actions": ["sts:AssumeRole"],
+            "effect": "Allow"
+        }
+    })
+
+    # Generate the Policies for the roles
+    output += TFStringBuilder.generate_resource("aws_iam_policy", "ca_cluster_admin_policy", {
+        "name": "cluster admin policy",
+        "description": "All Access to Cluster",
+        "policy": ("data.aws_iam_policy_document.cluster_admin_policy_doc.json", "ref"),
+        "tags": _get_tags(config)
+    })
+    output += TFStringBuilder.generate_resource("aws_iam_policy", "ca_cluster_dev_policy", {
+        "name": "cluster dev policy",
+        "description": "Access to K8s CLI for Cluster",
+        "policy": ("data.aws_iam_policy_document.cluster_dev_policy_doc.json", "ref"),
+        "tags": _get_tags(config)
+    })
+
+    # If either of the roles already exist, add the policy to the existing role, otherwise create a new role
+    if not admin_exists:
+        output += TFStringBuilder.generate_resource("aws_iam_role", "ca_cluster_admin_role", {
+            "name": role_name_admin,
+            "managed_policy_arns": [("aws_iam_policy.ca_cluster_admin_policy.arn", "ref")],
+            "assume_role_policy": ("data.aws_iam_policy_document.cluster_policy_doc_assume_role.json", "ref"),
+            "tags": _get_tags(config)
+        })
+    else:
+        output += TFStringBuilder.generate_resource("aws_iam_policy_attachment",
+                                                    "ca_cluster_admin_role_attach", {
+                                                        "name": "cluster admin role",
+                                                        "roles": [(role_name_admin, "ref")],
+                                                        "policy_arn":
+                                                            ("aws_iam_policy.ca_cluster_admin_policy.arn", "ref"),
+                                                        "tags": _get_tags(config)
+                                                    })
+    if not dev_exists:
+        output += TFStringBuilder.generate_resource("aws_iam_role", "ca_cluster_dev_role", {
+            "name": role_name_dev,
+            "managed_policy_arns": [("aws_iam_policy.ca_cluster_dev_policy.arn", "ref")],
+            "assume_role_policy": ("data.aws_iam_policy_document.cluster_policy_doc_assume_role.json", "ref"),
+            "tags": _get_tags(config)
+        })
+    else:
+        output += TFStringBuilder.generate_resource("aws_iam_policy_attachment",
+                                                    "ca_cluster_admin_role_attach", {
+                                                        "name": "cluster dev role",
+                                                        "roles": [(role_name_dev, "ref")],
+                                                        "policy_arn":
+                                                            ("aws_iam_policy.ca_cluster_dev_policy.arn", "ref"),
+                                                        "tags": _get_tags(config)
+                                                    })
+    return output
+
+
+def _generate_aws_provider(config: dict) -> str:
+    """
+    Generate the AWS Provider Block
+    :param config: YAML Config dict
+    :return: Block of Provider
+    """
+    return TFStringBuilder.generate_provider("aws", {
+        "access_key": os.environ.get(config['access_token_env_key'], "ACCESS_TOKEN"),
+        "secret_key": os.environ.get(config['secret_token_env_key'], "SECRET_TOKEN"),
+        "region": config['aws_region'],
+        "assume_role": {
+            "role_arn": config['administrator_iam_role_arn']
+        } if config['administrator_iam_role_arn'] is not None else None
+    })
+
+
+def _output_to_tf_file(output_string, region_name):
+    """
+    Method for outputting the final string to a terraform file
+    :param output_string: The string to output
+    :param region_name: The region the infrastructure is deployed to
+    """
+    print("Writing output to file")
+    if not os.path.exists(f"./{region_name}"):
+        os.makedirs(f"./{region_name}")
+    with open(f"./{region_name}/main.tf", "w+") as file:
+        file.write(output_string)
