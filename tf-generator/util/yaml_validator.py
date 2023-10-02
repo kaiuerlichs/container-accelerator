@@ -29,7 +29,6 @@ def validate_yaml(config: dict):
     if "dynamodb_table_name" not in config or config["dynamodb_table_name"] == "":
         raise ValueError("Field dynamodb_table_name is required")
     elif config["dynamodb_table_name"] not in get_dynamodb_tables():
-        print(get_dynamodb_tables())
         raise ValueError(
             f"{config['dynamodb_table_name']} is not a valid DynamoDB name. You must create the table before running this program"
         )
