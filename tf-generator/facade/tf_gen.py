@@ -75,6 +75,8 @@ def _generate_eks_modules(config):
 
     output = output_eks_cluster_name
     output += TFStringBuilder.generate_module("eks", source, version, eks_config)
+
+
 def _generate_k8s_namespaces(config):
     cluster_datapoint_config = {
         "name": ("module.eks.cluster_name", "ref"),
@@ -119,6 +121,7 @@ def _generate_vpc_resource(config):
     """
     vpc_config = {
         "cidr_block": str(config["cidr_block"]) if "cidr_block" in config else DEFAULT_CIDR_BLOCK
+        "tags": _get_tags(config)
     }
 
     output = TFStringBuilder.generate_output("vpc_id", f"aws_vpc.vpc_{config['aws_region']}.id", description="VPC ID")
@@ -288,12 +291,14 @@ def _generate_iam_roles(config: dict) -> str:
     output += TFStringBuilder.generate_resource("aws_iam_policy", "ca_cluster_admin_policy", {
         "name": "cluster admin policy",
         "description": "All Access to Cluster",
-        "policy": ("data.aws_iam_policy_document.cluster_admin_policy_doc.json", "ref")
+        "policy": ("data.aws_iam_policy_document.cluster_admin_policy_doc.json", "ref"),
+        "tags": _get_tags(config)
     })
     output += TFStringBuilder.generate_resource("aws_iam_policy", "ca_cluster_dev_policy", {
         "name": "cluster dev policy",
         "description": "Access to K8s CLI for Cluster",
-        "policy": ("data.aws_iam_policy_document.cluster_dev_policy_doc.json", "ref")
+        "policy": ("data.aws_iam_policy_document.cluster_dev_policy_doc.json", "ref"),
+        "tags": _get_tags(config)
     })
 
     # If either of the roles already exist, add the policy to the existing role, otherwise create a new role
@@ -301,7 +306,8 @@ def _generate_iam_roles(config: dict) -> str:
         output += TFStringBuilder.generate_resource("aws_iam_role", "ca_cluster_admin_role", {
             "name": role_name_admin,
             "managed_policy_arns": [("aws_iam_policy.ca_cluster_admin_policy.arn", "ref")],
-            "assume_role_policy": ("data.aws_iam_policy_document.cluster_policy_doc_assume_role.json", "ref")
+            "assume_role_policy": ("data.aws_iam_policy_document.cluster_policy_doc_assume_role.json", "ref"),
+            "tags": _get_tags(config)
         })
     else:
         output += TFStringBuilder.generate_resource("aws_iam_policy_attachment",
@@ -309,13 +315,15 @@ def _generate_iam_roles(config: dict) -> str:
                                                         "name": "cluster admin role",
                                                         "roles": [(role_name_admin, "ref")],
                                                         "policy_arn":
-                                                            ("aws_iam_policy.ca_cluster_admin_policy.arn", "ref")
+                                                            ("aws_iam_policy.ca_cluster_admin_policy.arn", "ref"),
+                                                        "tags": _get_tags(config)
                                                     })
     if not dev_exists:
         output += TFStringBuilder.generate_resource("aws_iam_role", "ca_cluster_dev_role", {
             "name": role_name_dev,
             "managed_policy_arns": [("aws_iam_policy.ca_cluster_dev_policy.arn", "ref")],
-            "assume_role_policy": ("data.aws_iam_policy_document.cluster_policy_doc_assume_role.json", "ref")
+            "assume_role_policy": ("data.aws_iam_policy_document.cluster_policy_doc_assume_role.json", "ref"),
+            "tags": _get_tags(config)
         })
     else:
         output += TFStringBuilder.generate_resource("aws_iam_policy_attachment",
@@ -323,7 +331,8 @@ def _generate_iam_roles(config: dict) -> str:
                                                         "name": "cluster dev role",
                                                         "roles": [(role_name_dev, "ref")],
                                                         "policy_arn":
-                                                            ("aws_iam_policy.ca_cluster_dev_policy.arn", "ref")
+                                                            ("aws_iam_policy.ca_cluster_dev_policy.arn", "ref"),
+                                                        "tags": _get_tags(config)
                                                     })
     return output
 
@@ -343,6 +352,7 @@ def _generate_aws_provider(config: dict) -> str:
         } if config['administrator_iam_role_arn'] is not None else None
     })
 
+
 def _output_to_tf_file(output_string, region_name):
     """
     Method for outputting the final string to a terraform file
@@ -354,15 +364,3 @@ def _output_to_tf_file(output_string, region_name):
         os.makedirs(f"./{region_name}")
     with open(f"./{region_name}/main.tf", "w+") as file:
         file.write(output_string)
-
-
-def _get_tags(config):
-    tags = {
-        "resource_owner": config["resource_owner"],
-        "environment": config["environment"] if "environment" in config else "dev",
-    }
-
-    for additional_tag in config["additional_tags"]:
-        tags.update({additional_tag["key"]: additional_tag["value"]})
-
-    return tags
