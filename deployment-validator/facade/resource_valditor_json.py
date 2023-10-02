@@ -44,16 +44,23 @@ def load_availability_zones(file_name: str) -> dict:
 
 def create_subnet_availability_zones(data: dict) -> dict:
     """
-    Creating a dictionary to store subnet IDs as keys and their associated availability zones as values.
+    Creating a dictionary to store availability zones as keys and their associated subnets as values.
     :param data: loaded configuration file
-    :return: list of AZs per subnet
+    :return: dictionary of AZs per subnet
     """
     subnet_availability_zones = {}
+    
     for subnet in data['SUBNET']:
         if 'id' in subnet and 'availabilityZone' in subnet:
             subnet_id = subnet['id']
             availability_zone = subnet['availabilityZone']
-            subnet_availability_zones[subnet_id] = availability_zone
+            
+            # Check if the availability_zone already exists in the dictionary
+            if availability_zone in subnet_availability_zones:
+                subnet_availability_zones[availability_zone].append(subnet_id)
+            else:
+                subnet_availability_zones[availability_zone] = [subnet_id]
+    
     return subnet_availability_zones
 
 
@@ -126,17 +133,16 @@ def check_eks(json_file: dict):
         logger.error(f"check_eks - EKS does not exist")
 
 
-# TODO: I believe this check happens the wrong way around, it should be 2 subnets per AZ - AM 29/09/23
 def check_subnet_availability_zones(subnet_availability_zones: dict):
     """
-    Check if each subnet has two availability zones
-    :param subnet_availability_zones: Dict of the availability zones
+    Check if each availability zone has exactly two subnets
+    :param subnet_availability_zones: Dict of availability zones and associated subnets
     :return:
     """
-    for subnet_id, zones in subnet_availability_zones.items():
-        if len(zones) != 2:
-            logger.warning(f"check_subnet_availability_zones - Subnet {subnet_id} does not have exactly two "
-                           f"availability zones: {zones}")
+    for availability_zone, subnets in subnet_availability_zones.items():
+        if len(subnets) != 2:
+            logger.warning(f"check_subnet_availability_zones - Availability Zone {availability_zone} does not have "
+                           f"exactly two subnets: {subnets}")
 
 
 def ping_alb(alb_dns_name: str) -> bool:
@@ -156,3 +162,20 @@ def ping_alb(alb_dns_name: str) -> bool:
     except ClientError as e:
         logger.error(f"ping_alb - Client Error - {e}")
         return False
+
+def run_validator():
+    """
+    Run the validator
+    :return:
+    """
+    logger.info("run_validator - Starting deployment validator")
+    json_file = load_json_data('deployment-config.json')
+    availability_zones = load_availability_zones('availability-zones.yaml')
+    subnet_availability_zones = create_subnet_availability_zones(json_file)
+    check_vpc(json_file)
+    check_subnet(json_file)
+    check_alb(json_file)
+    check_eks(json_file)
+    check_subnet_availability_zones(subnet_availability_zones)
+    ping_alb(json_file['ALB']['dnsName'])
+    logger.info("run_validator - Deployment validator finished")
