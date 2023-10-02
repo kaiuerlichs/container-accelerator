@@ -1,22 +1,53 @@
 import json
+import logging
+
 import yaml
 import requests
-import boto3 as boto
 from botocore.exceptions import ClientError
 
-# Load JSON data from the file
-def load_json_data(file_name):
-    with open(file_name, 'r') as json_file:
-        return json.load(json_file)
+if logger is None:
+    logger = logging.getLogger(__name__)
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] (deployment_validator - facade/res_val_json) %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S"
+    )
 
-# Load availability zones from a YAML file
-def load_availability_zones(file_name):
-    with open(file_name, 'r') as yaml_file:
-        return yaml.safe_load(yaml_file)
 
-# Creating a dictionary to store subnet IDs as keys and their associated availability zones
-#as values
-def create_subnet_availability_zones(data):
+def load_json_data(file_name: str) -> dict:
+    """
+    Load JSON data from the file.
+    :param file_name: file path of JSON
+    :return: dictionary of the file
+    """
+    try:
+        with open(file_name, "r") as json_file:
+            return json.load(json_file)
+    except FileNotFoundError as e:
+        logger.error(f"load_json_data - File Not found - {e}")
+        exit(1)
+
+
+def load_availability_zones(file_name: str) -> dict:
+    """
+    Load availability zones from a YAML file.
+    :param file_name: file path of YAML
+    :return: dictionary of the file
+    """
+    try:
+        with open(file_name, 'r') as yaml_file:
+            return yaml.safe_load(yaml_file)
+    except FileNotFoundError as e:
+        logger.error(f"load_availability_zones - File Not found - {e}")
+        exit(1)
+
+
+def create_subnet_availability_zones(data: dict) -> dict:
+    """
+    Creating a dictionary to store subnet IDs as keys and their associated availability zones as values.
+    :param data: loaded configuration file
+    :return: list of AZs per subnet
+    """
     subnet_availability_zones = {}
     for subnet in data['SUBNET']:
         if 'id' in subnet and 'availabilityZone' in subnet:
@@ -25,77 +56,103 @@ def create_subnet_availability_zones(data):
             subnet_availability_zones[subnet_id] = availability_zone
     return subnet_availability_zones
 
-# Check if a VPC exists and its state
-def check_vpc(data):
+
+def check_vpc(data: dict):
+    """
+    Check if a VPC exists and its state.
+    :param data: loaded configuration file
+    """
     if 'VPC' in data:
         vpc = data['VPC']
         if 'id' in vpc and 'state' in vpc:
             vpc_id = vpc['id']
             state = vpc['state']
-            print(f"VPC with ID {vpc_id} is {state}")
+            logger.info(f"check_vpc - VPC with ID {vpc_id} is {state}")
         else:
-            print("VPC is missing ID or state")
+            logger.warning("check_vpc - VPC is missing ID or state")
     else:
-        print("VPC does not exist")
+        logger.error("check_vpc - VPC does not exist")
 
-# Check if a SUBNET exists and its state
-def check_subnet(json_file):
+
+def check_subnet(json_file: dict):
+    """
+    Check if a SUBNET exists and its state
+    :param json_file: loaded configuration file
+    """
     if 'SUBNET' in json_file:
         subnets = json_file['SUBNET']
         for subnet in subnets:
             if 'id' in subnet and 'state' in subnet:
                 subnet_id = subnet['id']
                 state = subnet['state']
-                print(f"SUBNET with ID {subnet_id} is {state}")
+                logger.info(f"check_subnet - SUBNET with ID {subnet_id} is {state}")
             else:
-                print("SUBNET is missing ID or state")
+                logger.warning(f"check_subnet - SUBNET is missing ID or state")
     else:
-        print("SUBNET does not exist")
+        logger.error(f"check_subnet - SUBNET does not exist")
 
-# Check if an ALB exists and its state
-def check_alb(json_file):
+
+def check_alb(json_file: dict):
+    """
+    Check if an ALB exists and its state
+    :param json_file: loaded configuration file
+    """
     if 'ALB' in json_file:
         alb = json_file['ALB']
         if 'id' in alb and 'state' in alb:
             alb_id = alb['id']
             state = alb['state']
-            print(f"ALB with ID {alb_id} is {state}")
+            logger.info(f"check_alb - ALB with ID {alb_id} is {state}")
         else:
-            print("ALB is missing ID or state")
+            logger.warning(f"check_alb - ALB is missing ID or state")
     else:
-        print("ALB does not exist")
+        logger.error(f"check_alb - ALB does not exist")
 
-# Check if an EKS exists and its state
-def check_eks(json_file):
+
+def check_eks(json_file: dict):
+    """
+    Check if an EKS exists and its state
+    :param json_file: loaded configuration file
+    """
     if 'EKS' in json_file:
         eks = json_file['EKS']
         if 'id' in eks and 'state' in eks:
             eks_id = eks['id']
             state = eks['state']
-            print(f"EKS with ID {eks_id} is {state}")
+            logger.info(f"check_eks - EKS with ID {eks_id} is {state}")
         else:
-            print("EKS is missing ID or state")
+            logger.warning(f"check_eks - EKS is missing ID or state")
     else:
-        print("EKS does not exist")
+        logger.error(f"check_eks - EKS does not exist")
 
-# Check if each subnet has two availability zones
-def check_subnet_availability_zones(subnet_availability_zones):
+
+# TODO: I believe this check happens the wrong way around, it should be 2 subnets per AZ - AM 29/09/23
+def check_subnet_availability_zones(subnet_availability_zones: dict):
+    """
+    Check if each subnet has two availability zones
+    :param subnet_availability_zones: Dict of the availability zones
+    :return:
+    """
     for subnet_id, zones in subnet_availability_zones.items():
         if len(zones) != 2:
-            print(f"Subnet {subnet_id} does not have exactly two availability zones: {zones}")
+            logger.warning(f"check_subnet_availability_zones - Subnet {subnet_id} does not have exactly two "
+                           f"availability zones: {zones}")
 
-def ping_alb(alb_dns_name):
+
+def ping_alb(alb_dns_name: str) -> bool:
+    """
+    Trigger ping checks to the ALB controller
+    :param alb_dns_name: DNS name for the ALB Controller
+    :return: Boolean for pass fail
+    """
     try:
-        response = requests.get(url='http://'+ alb_dns_name +'/ping', timeout=(15,))
-        if response.text=='pong':
-            print(f"ALB {alb_dns_name} is responding to pings.")
+        response = requests.get(url='http://' + alb_dns_name + '/ping', timeout=(15,))
+        if response.text == 'pong':
+            logger.info(f"ping_alb - ALB {alb_dns_name} is responding to pings.")
             return True
         else:
-            print(f"ALB {alb_dns_name} is not responding to pings.")
+            logger.warning(f"ping_alb - ALB {alb_dns_name} is not responding to pings.")
             return False
     except ClientError as e:
-        print(f"An error occurred: {e}")
+        logger.error(f"ping_alb - Client Error - {e}")
         return False
-    
-
-    
