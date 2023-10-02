@@ -1,10 +1,19 @@
 import ipaddress
+import logging
 import math
 import os
 
 from constants.defaults import DEFAULT_CIDR_BLOCK
 from util.aws import get_aws_availability_zones, get_aws_roles
 from util.tf_string_builder import TFStringBuilder
+
+if logger is None:
+    logger = logging.getLogger(__name__)
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] (tf_gen - facade) %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S"
+    )
 
 _steps_registry = [
     "_generate_tf_header",
@@ -16,8 +25,7 @@ _steps_registry = [
     "_generate_iam_roles"
 ]
 
-
-def generate_tf_from_yaml(config: dict) -> str:
+def generate_tf_from_yaml(config: dict):
     """
     Main Generation Method Called from entrypoint with the configuration as a dictionary.
     :param config: Dictionary of the configuration file
@@ -25,6 +33,7 @@ def generate_tf_from_yaml(config: dict) -> str:
     """
     output_buffer = ""
     for step in _steps_registry:
+        logger.info(f"generate_tf_from_yaml - On Step: {step}")
         output_buffer += eval(f"{step}(config)")  # Execute each step in the registry passing the dictionary to each
     _output_to_tf_file(output_buffer, config["aws_region"])
 
@@ -67,7 +76,7 @@ def _generate_eks_modules(config):
     eks_config["subnets"] = ("aws_subnet.private_subnet[*].id", "ref")
     eks_config["vpc_id"] = ("aws_vpc.vpc.id", "ref")
 
-    if (not config["fargate"] if "fargate" in config else True):
+    if not config["fargate"] if "fargate" in config else True:
         eks_config["eks_managed_node_groups"] = {
             group["name"]: {
                 "min_size": group["min_size"],
