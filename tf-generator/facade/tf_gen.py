@@ -30,6 +30,11 @@ def generate_tf_from_yaml(config: dict) -> str:
 
 
 def _generate_tf_header(config: dict) -> str:
+    """
+    Generates the terraform configuration object
+    :param config: Dictionary of the configuration file
+    :return: String containing terraform configuration data
+    """
     header_args = {
         "required_providers": (
             {
@@ -322,6 +327,7 @@ def _generate_aws_provider(config: dict) -> str:
             "role_arn": config['administrator_iam_role_arn']
         } if config['administrator_iam_role_arn'] is not None else None
     })
+
 
 def _output_to_tf_file(output_string, region_name):
     """
