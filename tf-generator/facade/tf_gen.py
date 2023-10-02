@@ -40,11 +40,30 @@ def generate_tf_from_yaml(config: dict):
 
 def _generate_tf_header(config: dict) -> str:
     """
-    Generate the empty header block for TF
-    :param config: config file
-    :return: TF String
+    Generates the terraform configuration object
+    :param config: Dictionary of the configuration file
+    :return: String containing terraform configuration data
     """
-    return TFStringBuilder.generate_tf_header({})
+    header_args = {
+        "required_providers": (
+            {
+                "aws": {
+                    "source": "hashicorp/aws",
+                    "version": "~> 5.19.0"
+                }
+            },
+            "header"),
+        "backend \"s3\"": (
+            {
+                "bucket": config["bucket_name"],
+                "key": "state/terraform.state",
+                "region": config["aws_region"],
+                "encrypt": "true",
+                "dynamodb_table": config["dynamodb_table_name"]
+            },
+            "header")
+    }
+    return TFStringBuilder.generate_tf_header(header_args)
 
 
 def _generate_eks_modules(config):
@@ -317,6 +336,7 @@ def _generate_aws_provider(config: dict) -> str:
             "role_arn": config['administrator_iam_role_arn']
         } if config['administrator_iam_role_arn'] is not None else None
     })
+
 
 def _output_to_tf_file(output_string, region_name):
     """

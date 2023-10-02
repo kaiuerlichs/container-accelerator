@@ -116,6 +116,8 @@ class TFStringBuilder:
                 if isinstance(value, tuple):
                     if value[1] == "ref":
                         output += f"= {value[0]}{LINE_ENDINGS}"
+                    elif value[1] == "header":
+                        output += "{" + f"{LINE_ENDINGS}{TFStringBuilder._dict_to_string(value[0])}" + "}" + f"{LINE_ENDINGS}"
                     continue
                 if isinstance(value, str):
                     output += f"= \"{value}\"{LINE_ENDINGS}"
