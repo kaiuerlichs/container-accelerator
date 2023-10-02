@@ -7,6 +7,12 @@
 #### aws_region - required
 Specifies the AWS region to deploy the infrastructure to.
 
+#### bucket_name - required
+Specifies the bucket to store the Terraform state
+
+#### dynamodb_table_name - required
+Specifies the DynamoDB table for locking the Terraform state file. This table must have "LockID" as its partition key
+
 ### Networking Configuration
 #### cidr_block - *optional*
 **Defaults to 10.0.0.0/16** \
@@ -40,11 +46,11 @@ Specifies if fargate should be used for compute resources
 Specifies the namespaces to create for the kubernetes cluster
 
 #### ingress_type - *optional*
-**Defaults to ALB (Application Load Balancer)**\
+**Defaults to AWS**\
 \
 Specifies what kind of load balancer should be used to handle incoming traffic. \
 \
-**CURRENTLY ONLY ALB IS SUPPORTED**
+**CURRENTLY ONLY AWS IS SUPPORTED**
 
 ### Node Group Configuration - *optional*
 **Node group configuration is only used when fargate is set to false**
@@ -132,6 +138,8 @@ Specifies the key of the secret that stores the AWS secret token key
 ```yaml
 # AWS configuration
 aws_region: us-east-1 
+bucket_name: tf-state-bucket
+dynamodb_table_name: tf-locking-table
 
 # VPC and Subnets
 cidr_block: 10.0.0.0/16
@@ -150,7 +158,7 @@ fargate: false
 cluster_namespaces:
   - kube-system
   - default
-ingress_type: alb
+ingress_type: aws
 
 # node group configuration (only when fargate is false)
 node_groups:
