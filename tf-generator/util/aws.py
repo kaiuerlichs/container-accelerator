@@ -79,11 +79,11 @@ def get_table_partition_key(table_name: str) -> str:
     return key
 
 
-def get_aws_roles(prefix: str = None) -> dict:
+def get_aws_roles(prefix: str = "/") -> dict:
     """
     Returns the list of roles that match the optional prefix.
     :param prefix: Optional prefix to search for
     :return: Dictionary of roles on the account
     """
     iam = boto3.client("iam")
-    return iam.list_roles(PathPrefix=prefix).Roles
+    return iam.list_roles(PathPrefix=prefix)["Roles"]

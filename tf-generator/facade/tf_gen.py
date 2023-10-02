@@ -7,13 +7,12 @@ from constants.defaults import DEFAULT_CIDR_BLOCK
 from util.aws import get_aws_availability_zones, get_aws_roles
 from util.tf_string_builder import TFStringBuilder
 
-if logger is None:
-    logger = logging.getLogger(__name__)
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s [%(levelname)s] (tf_gen - facade) %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S"
-    )
+logger = logging.getLogger(__name__)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] (tf_gen - facade) %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S"
+)
 
 _steps_registry = [
     "_generate_tf_header",
@@ -24,6 +23,7 @@ _steps_registry = [
     "_generate_subnet_resources",
     "_generate_iam_roles"
 ]
+
 
 def generate_tf_from_yaml(config: dict):
     """
@@ -245,14 +245,13 @@ def _generate_iam_roles(config: dict) -> str:
         "ca_cluster_admin"
     role_name_dev = config['ca_cluster_dev_role_name'] if config['ca_cluster_dev_role_name'] is not None else \
         "ca_cluster_dev"
-
     # Check if roles exist
     admin_exists = False
     dev_exists = False
     roles = get_aws_roles()
     for role in roles:
-        admin_exists |= (role.RoleName == role_name_admin)
-        dev_exists |= (role.RoleName == role_name_dev)
+        admin_exists |= (role["RoleName"] == role_name_admin)
+        dev_exists |= (role["RoleName"] == role_name_dev)
 
     output = ""
 
@@ -332,9 +331,9 @@ def _generate_aws_provider(config: dict) -> str:
         "access_key": os.environ.get(config['access_token_env_key'], "ACCESS_TOKEN"),
         "secret_key": os.environ.get(config['secret_token_env_key'], "SECRET_TOKEN"),
         "region": config['aws_region'],
-        "assume_role": {
-            "role_arn": config['administrator_iam_role_arn']
-        } if config['administrator_iam_role_arn'] is not None else None
+        # "assume_role": {
+        #     "role_arn": config['administrator_iam_role_arn']
+        # } if config['administrator_iam_role_arn'] is not None else None
     })
 
 
