@@ -106,6 +106,11 @@ def _generate_ingress_controller_resources(config):
             return ""
 
 
+def _generate_alb_ingress_controller(config):
+    # Will be done in CA-39
+    pass
+
+
 def _generate_vpc_resource(config):
     """
     Method for generating a vpc object
