@@ -1,0 +1,109 @@
+name: Apply Terraform plan and validate
+run-name: Apply Terraform plan and validate (triggered by @${{ github.actor }})
+
+on:
+  pull_request:
+    branches:
+      - master
+    types:
+      - closed
+
+env:
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+jobs:
+  apply_tf:
+    if: github.event.pull_request.merged == true
+    name: Apply terraform plan 
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Download terraform files
+        uses: actions/download-artifact@v2
+        with:
+          name: terraform-files-{{github.event.pull_request.number}}}
+
+      - name: Run terraform commands
+        run: |
+          cd terraform-files
+          terraform init
+          terraform apply tfplan -auto-approve
+          terraform output -json > ./terraform-output.json
+
+      - name: Upload terraform output
+        uses: actions/upload-artifact@v2
+        with:
+          name: terraform-out-{{github.event.pull_request.number}}}
+          path: terraform-files/terraform-output.json
+
+  setup_k8s:
+    needs: apply_tf
+    name: Run k8s setup
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Setup python environment
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11' 
+          cache: 'pip'
+
+      - name: Install k8s-primer dependencies
+        run: pip install -r k8s-primer/requirements.txt
+
+      - name: Download terraform output
+        uses: actions/download-artifact@v2
+        with:
+          name: terraform-out-{{github.event.pull_request.number}}}
+
+      - name: Set variables
+        run: |
+          CLUSTER_NAME = $(jq -r '.cluster_name.value' terraform-output.json)
+          echo "CLUSTER_NAME=$CLUSTER_NAME"
+
+      - name: Wait for cluster to become available
+        run: |
+          while true; do
+            cluster_status=$(aws eks describe-cluster --name $CLUSTER_NAME --query cluster.status --output text)
+            if [ $cluster_status == "ACTIVE" ]; then
+              break
+            fi
+            sleep 60
+          done
+      
+      - name: Run k8s-primer
+        run: python k8s-primer/app.py config.yaml
+
+  validate_deployment:
+    needs: setup_k8s
+    name: Validate deployment
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Setup python environment
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11' 
+          cache: 'pip'
+
+      - name: Install deployment_validator dependencies
+        run: pip install -r deployment_validator/requirements.txt
+
+      - name: Download terraform output
+        uses: actions/download-artifact@v2
+        with:
+          name: terraform-out-{{github.event.pull_request.number}}}
+
+      - name: Run deployment_validator
+        run: python deployment_validator/app.py config.yaml terraform-output.json
+      

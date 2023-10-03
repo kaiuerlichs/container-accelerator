@@ -1,0 +1,50 @@
+name: Prepare Terraform
+run-name: Prepare Terraform files (triggered by @${{ github.actor }})
+
+on:
+  pull_request:
+    branches:
+      - master
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+env:
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+jobs:
+  generate_tf:
+    name: Generate Terraform files and plan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Setup python environment
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11' 
+          cache: 'pip'
+
+      - name: Install tf-generator dependencies
+        run: pip install -r tf-generator/requirements.txt
+
+      - name: Run tf-generator
+        run: python tf-generator/app.py config.yaml
+
+      - name: Run terraform commands
+        run: |
+          cd terraform-files
+          terraform init
+          terraform fmt
+          terrafor validate
+          terraform plan -out tfplan
+
+      - name: Upload terraform files
+        uses: actions/upload-artifact@v2
+        with:
+          name: terraform-files-{{github.event.pull_request.number}}
+          path: terraform-files
