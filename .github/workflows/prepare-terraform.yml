@@ -2,6 +2,7 @@ name: Prepare Terraform
 run-name: Prepare Terraform files (triggered by @${{ github.actor }})
 
 on:
+  workflow_dispatch:
   pull_request:
     branches:
       - master
