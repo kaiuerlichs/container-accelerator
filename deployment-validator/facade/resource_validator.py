@@ -1,7 +1,6 @@
 # Import necessary libraries
 import boto3 as boto
 import json
-import yaml
 import logging
 import requests
 import subprocess
