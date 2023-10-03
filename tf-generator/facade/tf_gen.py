@@ -73,7 +73,7 @@ def _generate_eks_modules(config):
     eks_config = {}
     eks_config["cluster_name"] = config["cluster_name"]
     eks_config["cluster_version"] = str(config["eks_version"]) if "eks_version" in config else "1.27"
-    eks_config["create_iam_role"] = "false"
+    eks_config["create_iam_role"] = "true"
     subnet_ids = []
     for i, subnet in enumerate(_generate_subnets(config)):
         subnet_ids.append((f"aws_subnet.subnet_{i % 2}_{subnet['availability_zone']}.id", "ref"))
@@ -261,32 +261,44 @@ def _generate_iam_roles(config: dict) -> str:
     output += TFStringBuilder.generate_data("aws_iam_policy_document", "cluster_admin_policy_doc", {
         "statement": ({
                           "actions": ["eks:*"],
-                          "resources": [("aws_eks_cluster.my-cluster.arn", "ref")],
-                          "effect": "Allow"
+                          "resources": [("module.eks.cluster_arn", "ref")],
+                          "effect": "Allow",
+                          "principals": ({
+                              "type": "AWS",
+                              "identifiers": ["*"]
+                          }, "header")
                       }, "header")
     })
     output += TFStringBuilder.generate_data("aws_iam_policy_document", "cluster_dev_policy_doc", {
         "statement": ({
                           "actions": ["eks:AccessKubernetesApi"],
-                          "resources": [("aws_eks_cluster.my-cluster.arn", "ref")],
-                          "effect": "Allow"
+                          "resources": [("module.eks.cluster_arn", "ref")],
+                          "effect": "Allow",
+                          "principals": ({
+                              "type": "AWS",
+                              "identifiers": ["*"]
+                          }, "header")
                       }, "header")
     })
     output += TFStringBuilder.generate_data("aws_iam_policy_document", "cluster_policy_doc_assume_role", {
         "statement": ({
                           "actions": ["sts:AssumeRole"],
-                          "effect": "Allow"
+                          "effect": "Allow",
+                          "principals": ({
+                              "type": "AWS",
+                              "identifiers": ["*"]
+                          }, "header")
                       }, "header")
     })
 
     # Generate the Policies for the roles
     output += TFStringBuilder.generate_resource("aws_iam_policy", "ca_cluster_admin_policy", {
-        "name": "cluster admin policy",
+        "name": "cluster-admin-policy",
         "description": "All Access to Cluster",
         "policy": ("data.aws_iam_policy_document.cluster_admin_policy_doc.json", "ref")
     })
     output += TFStringBuilder.generate_resource("aws_iam_policy", "ca_cluster_dev_policy", {
-        "name": "cluster dev policy",
+        "name": "cluster-dev-policy",
         "description": "Access to K8s CLI for Cluster",
         "policy": ("data.aws_iam_policy_document.cluster_dev_policy_doc.json", "ref")
     })
@@ -330,8 +342,8 @@ def _generate_aws_provider(config: dict) -> str:
     :return: Block of Provider
     """
     return TFStringBuilder.generate_provider("aws", {
-        "access_key": os.environ.get(config['access_token_env_key'], "ACCESS_TOKEN"),
-        "secret_key": os.environ.get(config['secret_token_env_key'], "SECRET_TOKEN"),
+        # "access_key": os.environ.get(config['access_token_env_key'], "ACCESS_TOKEN"),
+        # "secret_key": os.environ.get(config['secret_token_env_key'], "SECRET_TOKEN"),
         "region": config['aws_region'],
         # "assume_role": {
         #     "role_arn": config['administrator_iam_role_arn']

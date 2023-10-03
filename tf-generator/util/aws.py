@@ -17,7 +17,7 @@ def get_aws_availability_zones(region: str):
     :param region: AWS region
     :return: list of AWS availability zones
     """
-    ec2 = boto3.client("ec2")
+    ec2 = boto3.client("ec2", region_name=region)
     response = ec2.describe_availability_zones(Filters=[
         {
             'Name': 'region-name',
@@ -33,7 +33,7 @@ def get_aws_instance_types(region: str):
     Returns list of AWS instance types
     :return: list of AWS instance types
     """
-    ec2 = boto3.client("ec2")
+    ec2 = boto3.client("ec2", region_name=region)
     response = ec2.describe_instance_type_offerings(
         LocationType='region',
         Filters=[
