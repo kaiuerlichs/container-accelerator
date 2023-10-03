@@ -148,6 +148,41 @@ def ping_alb(alb_dns_name):
         logger.warning(f"An error occurred: {e}")
         return False
 
+
+def create_subnet_availability_zones(data: dict) -> dict:
+    """
+    Creating a dictionary to store availability zones as keys and their associated subnets as values.
+    :param data: loaded configuration file
+    :return: dictionary of AZs per subnet
+    """
+    subnet_availability_zones = {}
+    
+    for subnet in data['SUBNET']:
+        if 'id' in subnet and 'availabilityZone' in subnet:
+            subnet_id = subnet['id']
+            availability_zone = subnet['availabilityZone']
+            
+            # Check if the availability_zone already exists in the dictionary
+            if availability_zone in subnet_availability_zones:
+                subnet_availability_zones[availability_zone].append(subnet_id)
+            else:
+                subnet_availability_zones[availability_zone] = [subnet_id]
+    
+    return subnet_availability_zones
+
+def check_subnet_availability_zones(subnet_availability_zones: dict):
+    """
+    Check if each availability zone has exactly two subnets
+    :param subnet_availability_zones: Dict of availability zones and associated subnets
+    :return:
+    """
+    for availability_zone, subnets in subnet_availability_zones.items():
+        if len(subnets) != 2:
+            logger.warning(f"check_subnet_availability_zones - Availability Zone {availability_zone} does not have "
+                            f"exactly two subnets: {subnets}")
+            
+
+
 def check_k8s_connection():
     """
     Check if you can successfully run a 'kubectl get nodes' command,
