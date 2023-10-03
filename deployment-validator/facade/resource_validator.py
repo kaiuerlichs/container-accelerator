@@ -1,27 +1,35 @@
 # Import necessary libraries
 import boto3 as boto
 import json
+import logging
 import requests
 import subprocess
 from botocore.exceptions import ClientError
 
 # Function to create an EKS client
 
+if logger is None:
+    logger = logging.getLogger(__name__)
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] (tf_gen - facade) %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S"
+    )
 
 def create_eks_client():
     try:
         return boto.client('eks')
     except Exception as e:
-        print("Failed to create EKS client:", str(e))
+        logger.warning("Failed to create EKS client:", str(e))
         return None
 
 
 # Create the EKS client
 eks = create_eks_client()
 
-# If the EKS client is not created, print an error message
+# If the EKS client is not created, log an error message
 if eks is None:
-    print("EKS client is not created. Please check your AWS credentials.")
+    logger.warning("EKS client is not created. Please check your AWS credentials.")
 
 
 def load_json_data(file_name: str) -> dict:
@@ -48,16 +56,16 @@ def check_vpc(vpc_id):
         if len(response['Vpcs']) == 1:
             vpc = response['Vpcs'][0]
             if vpc['State'] == 'available':
-                print(f"VPC {vpc_id} exists and is available.")
+                logger.info(f"VPC {vpc_id} exists and is available.")
                 return True
             else:
-                print(f"VPC {vpc_id} exists but is not available.")
+                logger.warning(f"VPC {vpc_id} exists but is not available.")
                 return False
         else:
-            print(f"VPC {vpc_id} does not exist.")
+            logger.warning(f"VPC {vpc_id} does not exist.")
             return False
     except ClientError as e:
-        print(f"An error occurred: {e}")
+        logger.warning(f"An error occurred: {e}")
         return False
 
 # Function to check if the specified subnets exist and are available
@@ -68,12 +76,12 @@ def check_subnets(subnet_ids):
         response = eks.describe_subnets(SubnetIds=subnet_ids)
         for subnet in response['Subnets']:
             if subnet['State'] != 'available':
-                print(f"Subnet {subnet['SubnetId']} does not exist.")
+                logger.warning(f"Subnet {subnet['SubnetId']} does not exist.")
                 return False
-        print("All subnets exist.")
+        logger.info("All subnets exist.")
         return True
     except ClientError as e:
-        print(f"An error occurred: {e}")
+        logger.warning(f"An error occurred: {e}")
         return False
 
 # Function to check if a specified Application Load Balancer (ALB) exists and is active
@@ -83,13 +91,13 @@ def check_alb(alb_arn):
     try:
         response = eks.describe_load_balancers(LoadBalancerArns=[alb_arn])
         if response['LoadBalancers'][0]['State']['Code'] == 'active':
-            print(f"ALB {alb_arn} exists.")
+            logger.info(f"ALB {alb_arn} exists.")
             return True
         else:
-            print(f"ALB {alb_arn} does not exist.")
+            logger.warning(f"ALB {alb_arn} does not exist.")
             return False
     except ClientError as e:
-        print(f"An error occurred: {e}")
+        logger.warning(f"An error occurred: {e}")
         return False
 
 # Function to check if a specified EKS cluster exists and is active
@@ -99,14 +107,14 @@ def check_eks(cluster_name):
     try:
         response = eks.describe_cluster(name=cluster_name)
         if response['cluster']['status'] == 'ACTIVE':
-            print(f"EKS cluster {cluster_name} exists and is active.")
+            logger.info(f"EKS cluster {cluster_name} exists and is active.")
             return True
         else:
-            print(
+            logger.warning(
                 f"EKS cluster {cluster_name} does not exist or is not active.")
             return False
     except ClientError as e:
-        print(f"An error occurred: {e}")
+        logger.warning(f"An error occurred: {e}")
         return False
 
 # Function to chekck if the ALB  is up and running it sends out a ping and checks responds with 'pong'
@@ -117,13 +125,13 @@ def ping_alb(alb_dns_name):
         response = requests.get(
             url='http://' + alb_dns_name + '/ping', timeout=(15,))
         if response.text == 'pong':
-            print(f"ALB {alb_dns_name} is responding to pings.")
+            logger.info(f"ALB {alb_dns_name} is responding to pings.")
             return True
         else:
-            print(f"ALB {alb_dns_name} is not responding to pings.")
+            logger.warning(f"ALB {alb_dns_name} is not responding to pings.")
             return False
     except ClientError as e:
-        print(f"An error occurred: {e}")
+        logger.warning(f"An error occurred: {e}")
         return False
 
 # Function to check if you can successfully run a 'kubectl get nodes' command, indicating a working connection to the Kubernetes cluster
@@ -132,11 +140,11 @@ def ping_alb(alb_dns_name):
 def check_k8s_connection():
     try:
         output = subprocess.check_output(["kubectl", "get", "nodes"])
-        print("Connection to Kubernetes cluster is working.")
+        logger.info("Connection to Kubernetes cluster is working.")
         return True
     except subprocess.CalledProcessError as e:
-        print(e.output)
-        print("Connection to Kubernetes cluster is not working.")
+        logger.warning(e.output,"")
+        logger.warning("Connection to Kubernetes cluster is not working.")
         return False
 
 # Function to all the validation checks
@@ -178,5 +186,5 @@ def run_validator():
     if not check_k8s_connection():
         return
 
-    # If all checks pass, print success message
-    print("All resource validation checks passed.")
+    # If all checks pass, log a success message
+    logger.info("All resource validation checks passed.")

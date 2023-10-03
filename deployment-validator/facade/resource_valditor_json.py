@@ -56,6 +56,16 @@ def create_subnet_availability_zones(data: dict) -> dict:
             subnet_availability_zones[subnet_id] = availability_zone
     return subnet_availability_zones
 
+def check_subnet_availability_zones(subnet_availability_zones: dict):
+    """
+    Check if each availability zone has exactly two subnets
+    :param subnet_availability_zones: Dict of availability zones and associated subnets
+    :return:
+    """
+    for availability_zone, subnets in subnet_availability_zones.items():
+        if len(subnets) != 2:
+            logger.warning(f"check_subnet_availability_zones - Availability Zone {availability_zone} does not have "
+                           f"exactly two subnets: {subnets}")
 
 def check_vpc(data: dict):
     """
