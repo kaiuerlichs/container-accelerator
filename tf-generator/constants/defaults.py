@@ -2,6 +2,7 @@
 DEFAULT_CIDR_BLOCK = "10.0.0.0/16"
 
 VALID_EKS_VERSIONS = [
+    "1.28",
     "1.27",
     "1.26",
     "1.25",
