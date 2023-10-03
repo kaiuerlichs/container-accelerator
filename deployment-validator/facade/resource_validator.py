@@ -196,7 +196,7 @@ def check_k8s_connection():
         logger.warning("Connection to Kubernetes cluster is not working.")
         return False
 
-# Function to all the validation checks
+
 def run_validator():
     """
     Run all the validation checks
