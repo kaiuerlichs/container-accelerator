@@ -1,2 +1,19 @@
 name: Destroy current deployment
 run-name: Destroy current deployment (triggered by @${{ github.actor }})
+
+on:
+  workflow_dispatch:
+
+env:
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+jobs:
+  destroy_deployment:
+    name: Destroy current deployment
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Destroy
+        run: |
+          echo "Destroying current deployment"
