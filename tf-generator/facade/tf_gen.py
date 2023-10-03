@@ -263,10 +263,6 @@ def _generate_iam_roles(config: dict) -> str:
                           "actions": ["eks:*"],
                           "resources": [("module.eks.cluster_arn", "ref")],
                           "effect": "Allow",
-                          "principals": ({
-                              "type": "AWS",
-                              "identifiers": ["*"]
-                          }, "header")
                       }, "header")
     })
     output += TFStringBuilder.generate_data("aws_iam_policy_document", "cluster_dev_policy_doc", {
@@ -274,10 +270,6 @@ def _generate_iam_roles(config: dict) -> str:
                           "actions": ["eks:AccessKubernetesApi"],
                           "resources": [("module.eks.cluster_arn", "ref")],
                           "effect": "Allow",
-                          "principals": ({
-                              "type": "AWS",
-                              "identifiers": ["*"]
-                          }, "header")
                       }, "header")
     })
     output += TFStringBuilder.generate_data("aws_iam_policy_document", "cluster_policy_doc_assume_role", {
@@ -314,7 +306,7 @@ def _generate_iam_roles(config: dict) -> str:
         output += TFStringBuilder.generate_resource("aws_iam_policy_attachment",
                                                     "ca_cluster_admin_role_attach", {
                                                         "name": "cluster admin role",
-                                                        "roles": [(role_name_admin, "ref")],
+                                                        "roles": [role_name_admin],
                                                         "policy_arn":
                                                             ("aws_iam_policy.ca_cluster_admin_policy.arn", "ref")
                                                     })
@@ -326,9 +318,9 @@ def _generate_iam_roles(config: dict) -> str:
         })
     else:
         output += TFStringBuilder.generate_resource("aws_iam_policy_attachment",
-                                                    "ca_cluster_admin_role_attach", {
+                                                    "ca_cluster_dev_role_attach", {
                                                         "name": "cluster dev role",
-                                                        "roles": [(role_name_dev, "ref")],
+                                                        "roles": [role_name_dev],
                                                         "policy_arn":
                                                             ("aws_iam_policy.ca_cluster_dev_policy.arn", "ref")
                                                     })
@@ -358,7 +350,7 @@ def _output_to_tf_file(output_string, region_name):
     :param region_name: The region the infrastructure is deployed to
     """
     logger.info("Writing output to file")
-    if not os.path.exists(f"./{region_name}"):
-        os.makedirs(f"./{region_name}")
-    with open(f"./{region_name}/main.tf", "w+") as file:
+    if not os.path.exists(f"./terraform-files"):
+        os.makedirs(f"./terraform-files")
+    with open(f"./terraform-files/main.tf", "w+") as file:
         file.write(output_string)
