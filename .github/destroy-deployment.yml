@@ -1,0 +1,2 @@
+name: Destroy current deployment
+run-name: Destroy current deployment (triggered by @${{ github.actor }})
