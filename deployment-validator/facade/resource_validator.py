@@ -8,13 +8,13 @@ from botocore.exceptions import ClientError
 
 # Function to create an EKS client
 
-if logger is None:
-    logger = logging.getLogger(__name__)
-    logging.basicConfig(
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s [%(levelname)s] (tf_gen - facade) %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S"
-    )
+)
 
 def create_eks_client():
     try:
