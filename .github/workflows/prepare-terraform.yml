@@ -41,7 +41,7 @@ jobs:
           cd terraform-files
           terraform init
           terraform fmt
-          terrafor validate
+          terraform validate
           terraform plan -out tfplan
 
       - name: Upload terraform files
