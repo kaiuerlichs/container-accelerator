@@ -59,25 +59,25 @@ jobs:
       - name: Install k8s-primer dependencies
         run: pip install -r k8s-primer/requirements.txt
 
-      - name: Download terraform output
-        uses: actions/download-artifact@v2
-        with:
-          name: terraform-out-{{github.event.pull_request.number}}}
+      # - name: Download terraform output
+      #   uses: actions/download-artifact@v2
+      #   with:
+      #     name: terraform-out-{{github.event.pull_request.number}}}
 
-      - name: Set variables
-        run: |
-          CLUSTER_NAME = $(jq -r '.cluster_name.value' terraform-output.json)
-          echo "CLUSTER_NAME=$CLUSTER_NAME"
+      # - name: Set variables
+      #   run: |
+      #     CLUSTER_NAME = $(jq -r '.cluster_name.value' terraform-output.json)
+      #     echo "CLUSTER_NAME=$CLUSTER_NAME"
 
-      - name: Wait for cluster to become available
-        run: |
-          while true; do
-            cluster_status=$(aws eks describe-cluster --name $CLUSTER_NAME --query cluster.status --output text)
-            if [ $cluster_status == "ACTIVE" ]; then
-              break
-            fi
-            sleep 60
-          done
+      # - name: Wait for cluster to become available
+      #   run: |
+      #     while true; do
+      #       cluster_status=$(aws eks describe-cluster --name $CLUSTER_NAME --query cluster.status --output text)
+      #       if [ $cluster_status == "ACTIVE" ]; then
+      #         break
+      #       fi
+      #       sleep 60
+      #     done
       
       - name: Run k8s-primer
         run: python k8s-primer/app.py config.yaml
@@ -106,5 +106,5 @@ jobs:
           name: terraform-out-{{github.event.pull_request.number}}}
 
       - name: Run deployment_validator
-        run: python deployment_validator/app.py config.yaml terraform-output.json
+        run: python deployment_validator/app.py terraform-output.json
       
