@@ -1,5 +1,6 @@
 import yaml
 import logging
+from util.args_util import load_args
 from util.yaml_validator import validate_yaml
 from facade.tf_gen import generate_tf_from_yaml
 
@@ -11,8 +12,10 @@ logging.basicConfig(
 )
 
 if __name__ == "__main__":
+    args = load_args()
+
     try:
-        with open("config.yml", "r") as file:
+        with open(args.config_file, "r") as file:
             config = yaml.safe_load(file)
     except FileNotFoundError as e:
         logger.error(f"yaml_safe_load - File Not found - {e}")

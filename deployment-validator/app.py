@@ -1,5 +1,6 @@
-import yaml
 import logging
+from util.args_util import load_args
+from facade.resource_validator import run_validation
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(
@@ -9,9 +10,5 @@ logging.basicConfig(
 )
 
 if __name__ == "__main__":
-    try:
-        with open("config.yml", "r") as file:
-            config = yaml.safe_load(file)
-    except FileNotFoundError as e:
-        logger.error(f"yaml_safe_load - File Not found - {e}")
-        exit(1)
+    args = load_args()
+    run_validation(args.output_file)
