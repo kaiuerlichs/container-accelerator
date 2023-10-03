@@ -45,7 +45,6 @@ def load_json_data(file_name: str) -> dict:
         logger.error(f"load_json_data - File Not found - {e}")
         exit(1)
 
-
 def check_vpc(vpc_id):
     """
     Check if a specified VPC exists and is available
@@ -217,7 +216,13 @@ def run_validator():
     if subnet_ids:
         if not check_subnets(subnet_ids):
             return
-
+        
+    # Check Subnet Availability Zones
+    subnet_availability_zones = resource_info.get("subnet_availability_zones")
+    if subnet_availability_zones:
+        if not check_subnet_availability_zones(subnet_availability_zones):
+            return
+        
     # Check ALB
     alb_arn = resource_info.get("alb_arn")
     if alb_arn:
