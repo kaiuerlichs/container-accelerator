@@ -1,6 +1,7 @@
 # Import necessary libraries
 import boto3 as boto
 import json
+import yaml
 import logging
 import requests
 import subprocess
@@ -31,7 +32,6 @@ eks = create_eks_client()
 if eks is None:
     logger.warning("EKS client is not created. Please check your AWS credentials.")
 
-
 def load_json_data(file_name: str) -> dict:
     """
     Load JSON data from the file.
@@ -45,10 +45,13 @@ def load_json_data(file_name: str) -> dict:
         logger.error(f"load_json_data - File Not found - {e}")
         exit(1)
 
-# Function to check if a specified VPC exists and is available
-
 
 def check_vpc(vpc_id):
+    """
+    Check if a specified VPC exists and is available
+    :param vpc_id: the VPC ID of cluster
+    :return: true for successful or false for not successful
+    """
     try:
         ec2 = boto.client('ec2')
         response = ec2.describe_vpcs(VpcIds=[vpc_id])
@@ -68,10 +71,13 @@ def check_vpc(vpc_id):
         logger.warning(f"An error occurred: {e}")
         return False
 
-# Function to check if the specified subnets exist and are available
-
 
 def check_subnets(subnet_ids):
+    """
+    Check if the specified subnets exist and are available
+    :param subnet_ids: the subnet IDs of cluster
+    :return: true for successful or false for not successful
+    """
     try:
         response = eks.describe_subnets(SubnetIds=subnet_ids)
         for subnet in response['Subnets']:
@@ -84,10 +90,12 @@ def check_subnets(subnet_ids):
         logger.warning(f"An error occurred: {e}")
         return False
 
-# Function to check if a specified Application Load Balancer (ALB) exists and is active
-
-
 def check_alb(alb_arn):
+    """
+    Check if a specified Application Load Balancer (ALB) exists and is active
+    :param alb_arn: the ALB ARN of cluster
+    :return: true for successful or false for not successful
+    """
     try:
         response = eks.describe_load_balancers(LoadBalancerArns=[alb_arn])
         if response['LoadBalancers'][0]['State']['Code'] == 'active':
@@ -100,10 +108,13 @@ def check_alb(alb_arn):
         logger.warning(f"An error occurred: {e}")
         return False
 
-# Function to check if a specified EKS cluster exists and is active
-
 
 def check_eks(cluster_name):
+    """
+    Check if a specified EKS cluster exists and is active
+    :param cluster_name: the name of the cluster
+    :return: true for successful or false for not successful
+    """
     try:
         response = eks.describe_cluster(name=cluster_name)
         if response['cluster']['status'] == 'ACTIVE':
@@ -117,10 +128,13 @@ def check_eks(cluster_name):
         logger.warning(f"An error occurred: {e}")
         return False
 
-# Function to chekck if the ALB  is up and running it sends out a ping and checks responds with 'pong'
-
 
 def ping_alb(alb_dns_name):
+    """
+    Trigger ping checks to the ALB controller
+    :param alb_dns_name: DNS name for the ALB Controller
+    :return: Boolean for pass or fail
+    """
     try:
         response = requests.get(
             url='http://' + alb_dns_name + '/ping', timeout=(15,))
@@ -134,10 +148,12 @@ def ping_alb(alb_dns_name):
         logger.warning(f"An error occurred: {e}")
         return False
 
-# Function to check if you can successfully run a 'kubectl get nodes' command, indicating a working connection to the Kubernetes cluster
-
-
 def check_k8s_connection():
+    """
+    Check if you can successfully run a 'kubectl get nodes' command,
+      indicating a working connection to the Kubernetes cluster
+    :return: true for successful or false for not successful
+    """
     try:
         output = subprocess.check_output(["kubectl", "get", "nodes"])
         logger.info("Connection to Kubernetes cluster is working.")
@@ -149,6 +165,9 @@ def check_k8s_connection():
 
 # Function to all the validation checks
 def run_validator():
+    """
+    Run all the validation checks
+    """
     # Load resource information from JSON file
     resource_info = load_json_data("resource_info.json")
 
