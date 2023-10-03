@@ -197,52 +197,52 @@ def check_k8s_connection():
         return False
 
 
-def run_validator():
+def run_validator(output_file: str):
     """
     Run all the validation checks
     """
     # Load resource information from JSON file
-    resource_info = load_json_data("resource_info.json")
+    resource_info = load_json_data(output_file)
 
     # Check VPC
     vpc_id = resource_info.get("vpc_id")
     if vpc_id:
         if not check_vpc(vpc_id):
-            return
+            quit(1)
 
     # Check Subnets
     subnet_ids = resource_info.get("subnet_ids")
     if subnet_ids:
         if not check_subnets(subnet_ids):
-            return
+            quit(1)
         
     # Check Subnet Availability Zones
     subnet_availability_zones = resource_info.get("subnet_availability_zones")
     if subnet_availability_zones:
         if not check_subnet_availability_zones(subnet_availability_zones):
-            return
+            quit(1)
         
     # Check ALB
     alb_arn = resource_info.get("alb_arn")
     if alb_arn:
         if not check_alb(alb_arn):
-            return
+            quit(1)
 
     # Check EKS Cluster
     cluster_name = resource_info.get("cluster_name")
     if cluster_name:
         if not check_eks(cluster_name):
-            return
+            quit(1)
 
     # Ping ALB
     alb_dns_name = resource_info.get("alb_dns_name")
     if alb_dns_name:
         if not ping_alb(alb_dns_name):
-            return
+            quit(1)
 
     # Check K8s Connection
     if not check_k8s_connection():
-        return
+        quit(1)
 
     # If all checks pass, log a success message
     logger.info("All resource validation checks passed.")
