@@ -22,7 +22,7 @@ def initialise_k8s_connection(cluster_name, region):
 
     try:
         _generate_kubeconfig_file(cluster_name, region, kubeconfig_path)
-        k8s_config.load_kube_config(config_file=kubeconfig_path)
+        k8s_config.load_kube_config()
         logger.info("Kubeconfig loaded successfully")
         
     except Exception as e:
@@ -31,5 +31,5 @@ def initialise_k8s_connection(cluster_name, region):
 
 
 def _generate_kubeconfig_file(cluster_name, region, kubeconfig_path):
-    command = f'aws eks update-kubeconfig --name {cluster_name} --region {region} --kubeconfig {kubeconfig_path}'
+    command = f'aws eks update-kubeconfig --name {cluster_name} --region {region}'
     subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)

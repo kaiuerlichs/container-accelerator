@@ -13,7 +13,6 @@ logging.basicConfig(
 
 if __name__ == "__main__":
     args = load_args()
-
     try:
         with open(args.config_file, "r") as file:
             config = yaml.safe_load(file)
@@ -22,7 +21,7 @@ if __name__ == "__main__":
         exit(1)
 
     try:
-        config = validate_yaml(config)
+        validate_yaml(config)
     except ValueError as e:
         logger.error(f"validate_yaml - Invalid configuration file provided - {e}")
         exit(2)
@@ -30,5 +29,5 @@ if __name__ == "__main__":
     try:
         generate_tf_from_yaml(config)
     except Exception as e:
-        logger.error(f"generate_tf_from_yaml - Invalid configuration file provided - {e}")
+        logger.error(f"generate_tf_from_yaml - Error caught - {e}")
         exit(3)

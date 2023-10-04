@@ -7,21 +7,19 @@ from constants.defaults import DEFAULT_CIDR_BLOCK
 from util.aws import get_aws_availability_zones, get_aws_roles
 from util.tf_string_builder import TFStringBuilder
 
-if logger is None:
-    logger = logging.getLogger(__name__)
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s [%(levelname)s] (tf_gen - facade) %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S"
-    )
+logger = logging.getLogger(__name__)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] (tf_gen - facade) %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S"
+)
 
 _steps_registry = [
     "_generate_tf_header",
     "_generate_aws_provider",
     "_generate_eks_modules",
+    "_generate_vpc_modules",
     "_generate_ingress_controller_resources",
-    "_generate_vpc_resource",
-    "_generate_subnet_resources",
     "_generate_iam_roles"
 ]
 
@@ -73,9 +71,9 @@ def _generate_eks_modules(config):
 
     eks_config = {}
     eks_config["cluster_name"] = config["cluster_name"]
-    eks_config["cluster_version"] = str(config["eks_version"]) if "eks_version" in config else "1.27"
-    eks_config["subnets"] = ("aws_subnet.private_subnet[*].id", "ref")
-    eks_config["vpc_id"] = ("aws_vpc.vpc.id", "ref")
+    eks_config["cluster_version"] = str(config["eks_version"]) if "eks_version" in config else "1.28"
+    eks_config["subnet_ids"] = ("module.vpc.private_subnets", "ref")
+    eks_config["vpc_id"] = ("module.vpc.vpc_id", "ref")
     eks_config["tags"] = _get_tags(config)
 
     if not config["fargate"] if "fargate" in config else True:
@@ -97,39 +95,12 @@ def _generate_eks_modules(config):
                 "selectors": [{"namespace": ns} for ns in config["cluster_namespaces"]]
             }
         }
-    # Generate output block for EKS cluster name
-    output_eks_cluster_name = TFStringBuilder.generate_output("eks_cluster_name", eks_config["cluster_name"],
-                                                              description="EKS Cluster Name")
 
-    # Generate output block for EKS cluster state (assuming you have a state variable)
-    eks_cluster_state = "active"  # You need to obtain the actual state
-    output_eks_cluster_state = TFStringBuilder.generate_output("eks_cluster_state", eks_cluster_state,
-                                                               description="EKS Cluster State")
+    output_block = TFStringBuilder.generate_module("eks", source, version, eks_config)
+    output_block += TFStringBuilder.generate_output("eks_cluster_name", "module.eks.cluster_name", description="EKS Cluster Name")
+    output_block += TFStringBuilder.generate_output("eks_cluster_endpoint", "module.eks.cluster_endpoint", description="EKS Cluster Endpoint")
 
-    output = output_eks_cluster_name
-    output += TFStringBuilder.generate_module("eks", source, version, eks_config)
-
-
-def _generate_k8s_namespaces(config):
-    cluster_datapoint_config = {
-        "name": ("module.eks.cluster_name", "ref"),
-        "tags": _get_tags(config)
-    }
-    k8s_provider_config = {
-        "host": ("data.eks_cluster.cluster.endpoint", "ref"),
-        "cluster_ca_certificate": ("base64decode(data.eks_cluster.cluster.certificate_authority.0.data)", "ref"),
-        "tags": _get_tags(config)
-    }
-    k8s_ns_configs = [{"metadata": {"name": ns}} for ns in config["cluster_namespaces"]]
-
-    output = ""
-    output += TFStringBuilder.generate_data("eks_cluster", "cluster", cluster_datapoint_config)
-    output += TFStringBuilder.generate_provider("kubernetes", k8s_provider_config)
-
-    for ns_config in k8s_ns_configs:
-        output += TFStringBuilder.generate_resource("kubernetes_namespace", ns_config["metadata"]["name"], ns_config)
-
-    return output
+    return output_block
 
 
 def _generate_ingress_controller_resources(config):
@@ -141,37 +112,45 @@ def _generate_ingress_controller_resources(config):
             return ""
 
 
-def _generate_vpc_resource(config):
+def _generate_vpc_modules(config):
     """
     Method for generating a vpc object
     :param config: Dictionary representation of  config file
     :return: Dictionary of the vpc's config options
     """
-    vpc_config = {
-        "cidr_block": str(config["cidr_block"]) if "cidr_block" in config else DEFAULT_CIDR_BLOCK
-        "tags": _get_tags(config)
+    source = "terraform-aws-modules/vpc/aws"
+    version = "5.1.2"
+
+    vpc_config = {}
+    vpc_config["name"] = f"vpc-{config['cluster_name']}"
+    vpc_config["cidr"] = str(config["cidr_block"]) if "cidr_block" in config else DEFAULT_CIDR_BLOCK
+    vpc_config["azs"] = config["availability_zones"] if "availability_zones" in config else \
+                        get_aws_availability_zones(config["aws_region"])
+    subnet_cidr = _generate_subnet_cidrs(vpc_config["cidr"], vpc_config["azs"])
+    vpc_config["private_subnets"] = subnet_cidr[::2]
+    vpc_config["public_subnets"] = subnet_cidr[1::2]
+    vpc_config["enable_nat_gateway"] = True
+
+    vpc_config["private_subnet_tags"] = {
+        '"kubernetes.io/role/internal-elb"': 1
     }
+    vpc_config["public_subnet_tags"] = {
+        '"kubernetes.io/role/elb"': 1
+    }
+    vpc_config["tags"] = _get_tags(config)
 
-    output = TFStringBuilder.generate_output("vpc_id", f"aws_vpc.vpc_{config['aws_region']}.id", description="VPC ID")
-    output += TFStringBuilder.generate_output("vpc_state", f"aws_vpc.vpc_{config['aws_region']}.state",
-                                              description="VPC State")
+    output_block = TFStringBuilder.generate_module("vpc", source, version, vpc_config)
+    output_block += TFStringBuilder.generate_output("vpc_id", "module.vpc.vpc_id", description="VPC ID")
+    output_block += TFStringBuilder.generate_output("private_subnets", "module.vpc.private_subnets", description="Private subnets")
+    output_block += TFStringBuilder.generate_output("public_subnets", "module.vpc.public_subnets", description="Public subnets")
 
-    return output + TFStringBuilder.generate_resource("aws_vpc", f"vpc_{config['aws_region']}", vpc_config)
+    return output_block
 
 
-def _generate_subnet_resources(config):
-    """
-    Method for generating all subnets within a vpc
-    :param config: Dictionary representation of config file
-    :return: A list of subnet config options
-    """
+def _generate_subnet_cidrs(cidr, azs):
     subnets = []
-    network = ipaddress.ip_network(str(config["cidr_block"]) if "cidr_block" in config else DEFAULT_CIDR_BLOCK)
-    availability_zones = []
-    if "availability_zones" in config:
-        availability_zones = config["availability_zones"]
-    else:
-        availability_zones = get_aws_availability_zones(config["aws_region"])
+    network = ipaddress.ip_network(cidr)
+    availability_zones = azs
 
     # Calculate number of Addresses to allocate to each block (rounded to nearest power of 2)
     addresses_per_subnet = 2 ** math.floor(
@@ -187,64 +166,14 @@ def _generate_subnet_resources(config):
     # Convert the address to an integer for calculations of subnets
     network_as_int = int(network.network_address)
 
-    for i, availability_zone in enumerate(availability_zones):
-        # Each AZ is assigned 2 subnets, i * 2 and i * 2 + 1
-        sub_network_index = i * 2
+    for i in range(len(availability_zones)*2):
 
-        # Calculate the new base address from the index and the original address
-        sub_net1_base_address = _generate_base_address(sub_network_index, network, num_modifiable_bits,
+        base_address = _generate_base_address(i, network, num_modifiable_bits,
                                                        network_as_int)
+        cidr_block = f"{ipaddress.ip_address(base_address)}/{subnet_net_mask}"
+        subnets.append(cidr_block)
 
-        # Convert the new address into a string, appending the netmask
-        subnet_1 = f"{ipaddress.ip_address(sub_net1_base_address)}/{subnet_net_mask}"
-
-        # Create a config object for the first subnet
-        subnet1_config = {
-            "cidr_block": subnet_1,
-            "availability_zone": availability_zone,
-            "vpc_id": (f"aws_vpc.vpc_{config['aws_region']}.id", "ref"),
-            "tags": _get_tags(config)
-        }
-
-        # Add the first subnet to the list of subnets
-        subnets.append(subnet1_config)
-
-        sub_net2_base_address = _generate_base_address(sub_network_index + 1, network, num_modifiable_bits,
-                                                       network_as_int)
-
-        subnet_2 = f"{ipaddress.ip_address(sub_net2_base_address)}/{subnet_net_mask}"
-
-        subnet2_config = {
-            "cidr_block": subnet_2,
-            "availability_zone": availability_zone,
-            "vpc_id": (f"aws_vpc.vpc_{config['aws_region']}.id", "ref"),
-            "tags": _get_tags(config)
-        }
-
-        subnets.append(subnet2_config)
-
-    builder = ""
-    for i, subnet in enumerate(subnets):
-        builder += TFStringBuilder.generate_resource("aws_subnet",
-                                                     f"subnet_{i % 2}_{subnet['availability_zone']}", subnet)
-        subnet_index = i
-        output_subnet_id = TFStringBuilder.generate_output(f"subnet_{subnet_index}_id",
-                                                           f"aws_subnet.subne{subnet_index}.id",
-                                                           description=f"Subnet {subnet_index} ID")
-        builder += output_subnet_id
-
-        # Add output block for subnet state
-        output_subnet_state = TFStringBuilder.generate_output(f"subnet_{subnet_index}_state",
-                                                              f"aws_subnet.subnet_{subnet_index}.state",
-                                                              description=f"Subnet {subnet_index} State")
-        builder += output_subnet_state
-
-        # Add output block for availability zone
-        output_availability_zone = TFStringBuilder.generate_output(f"subnet_{subnet_index}_availability_zone",
-                                                                   subnet['availability_zone'],
-                                                                   description=f"Subnet {subnet_index} Availability Zone")
-        builder += output_availability_zone
-    return builder
+    return subnets
 
 
 def _generate_base_address(sub_network_index, network, num_modifiable_bits, network_as_int):
@@ -282,48 +211,49 @@ def _generate_iam_roles(config: dict) -> str:
         "ca_cluster_admin"
     role_name_dev = config['ca_cluster_dev_role_name'] if config['ca_cluster_dev_role_name'] is not None else \
         "ca_cluster_dev"
-
     # Check if roles exist
     admin_exists = False
     dev_exists = False
     roles = get_aws_roles()
     for role in roles:
-        admin_exists |= (role.RoleName == role_name_admin)
-        dev_exists |= (role.RoleName == role_name_dev)
-
-    output = ""
+        admin_exists |= (role["RoleName"] == role_name_admin)
+        dev_exists |= (role["RoleName"] == role_name_dev)
 
     # Generate the policy documents for Administrator, Developer, and Service account
-    output += TFStringBuilder.generate_data("aws_iam_policy_document", "cluster_admin_policy_doc", {
-        "statement": {
-            "actions": ["eks:*"],
-            "resources": [("aws_eks_cluster.cluster.arn", "ref")],
-            "effect": "Allow"
-        }
+    output_block = TFStringBuilder.generate_data("aws_iam_policy_document", "cluster_admin_policy_doc", {
+        "statement": ({
+                          "actions": ["eks:*"],
+                          "resources": [("module.eks.cluster_arn", "ref")],
+                          "effect": "Allow",
+                      }, "header")
     })
-    output += TFStringBuilder.generate_data("aws_iam_policy_document", "cluster_dev_policy_doc", {
-        "statement": {
-            "actions": ["eks:AccessKubernetesApi"],
-            "resources": [("aws_eks_cluster.cluster.arn", "ref")],
-            "effect": "Allow"
-        }
+    output_block += TFStringBuilder.generate_data("aws_iam_policy_document", "cluster_dev_policy_doc", {
+        "statement": ({
+                          "actions": ["eks:AccessKubernetesApi"],
+                          "resources": [("module.eks.cluster_arn", "ref")],
+                          "effect": "Allow",
+                      }, "header")
     })
-    output += TFStringBuilder.generate_data("aws_iam_policy_document", "cluster_policy_doc_assume_role", {
-        "statement": {
-            "actions": ["sts:AssumeRole"],
-            "effect": "Allow"
-        }
+    output_block += TFStringBuilder.generate_data("aws_iam_policy_document", "cluster_policy_doc_assume_role", {
+        "statement": ({
+                          "actions": ["sts:AssumeRole"],
+                          "effect": "Allow",
+                          "principals": ({
+                              "type": "AWS",
+                              "identifiers": ["*"]
+                          }, "header")
+                      }, "header")
     })
 
     # Generate the Policies for the roles
-    output += TFStringBuilder.generate_resource("aws_iam_policy", "ca_cluster_admin_policy", {
-        "name": "cluster admin policy",
+    output_block += TFStringBuilder.generate_resource("aws_iam_policy", "ca_cluster_admin_policy", {
+        "name": "cluster-admin-policy",
         "description": "All Access to Cluster",
         "policy": ("data.aws_iam_policy_document.cluster_admin_policy_doc.json", "ref"),
         "tags": _get_tags(config)
     })
-    output += TFStringBuilder.generate_resource("aws_iam_policy", "ca_cluster_dev_policy", {
-        "name": "cluster dev policy",
+    output_block += TFStringBuilder.generate_resource("aws_iam_policy", "ca_cluster_dev_policy", {
+        "name": "cluster-dev-policy",
         "description": "Access to K8s CLI for Cluster",
         "policy": ("data.aws_iam_policy_document.cluster_dev_policy_doc.json", "ref"),
         "tags": _get_tags(config)
@@ -331,38 +261,39 @@ def _generate_iam_roles(config: dict) -> str:
 
     # If either of the roles already exist, add the policy to the existing role, otherwise create a new role
     if not admin_exists:
-        output += TFStringBuilder.generate_resource("aws_iam_role", "ca_cluster_admin_role", {
+        output_block += TFStringBuilder.generate_resource("aws_iam_role", "ca_cluster_admin_role", {
             "name": role_name_admin,
             "managed_policy_arns": [("aws_iam_policy.ca_cluster_admin_policy.arn", "ref")],
             "assume_role_policy": ("data.aws_iam_policy_document.cluster_policy_doc_assume_role.json", "ref"),
             "tags": _get_tags(config)
         })
     else:
-        output += TFStringBuilder.generate_resource("aws_iam_policy_attachment",
+        output_block += TFStringBuilder.generate_resource("aws_iam_policy_attachment",
                                                     "ca_cluster_admin_role_attach", {
                                                         "name": "cluster admin role",
-                                                        "roles": [(role_name_admin, "ref")],
+                                                        "roles": [role_name_admin],
                                                         "policy_arn":
                                                             ("aws_iam_policy.ca_cluster_admin_policy.arn", "ref"),
                                                         "tags": _get_tags(config)
                                                     })
     if not dev_exists:
-        output += TFStringBuilder.generate_resource("aws_iam_role", "ca_cluster_dev_role", {
+        output_block += TFStringBuilder.generate_resource("aws_iam_role", "ca_cluster_dev_role", {
             "name": role_name_dev,
             "managed_policy_arns": [("aws_iam_policy.ca_cluster_dev_policy.arn", "ref")],
             "assume_role_policy": ("data.aws_iam_policy_document.cluster_policy_doc_assume_role.json", "ref"),
             "tags": _get_tags(config)
         })
     else:
-        output += TFStringBuilder.generate_resource("aws_iam_policy_attachment",
-                                                    "ca_cluster_admin_role_attach", {
+        output_block += TFStringBuilder.generate_resource("aws_iam_policy_attachment",
+                                                    "ca_cluster_dev_role_attach", {
                                                         "name": "cluster dev role",
-                                                        "roles": [(role_name_dev, "ref")],
+                                                        "roles": [role_name_dev],
                                                         "policy_arn":
                                                             ("aws_iam_policy.ca_cluster_dev_policy.arn", "ref"),
                                                         "tags": _get_tags(config)
                                                     })
-    return output
+    
+    return output_block
 
 
 def _generate_aws_provider(config: dict) -> str:
@@ -372,12 +303,7 @@ def _generate_aws_provider(config: dict) -> str:
     :return: Block of Provider
     """
     return TFStringBuilder.generate_provider("aws", {
-        "access_key": os.environ.get(config['access_token_env_key'], "ACCESS_TOKEN"),
-        "secret_key": os.environ.get(config['secret_token_env_key'], "SECRET_TOKEN"),
-        "region": config['aws_region'],
-        "assume_role": {
-            "role_arn": config['administrator_iam_role_arn']
-        } if config['administrator_iam_role_arn'] is not None else None
+        "region": config['aws_region']
     })
 
 
@@ -387,8 +313,8 @@ def _output_to_tf_file(output_string, region_name):
     :param output_string: The string to output
     :param region_name: The region the infrastructure is deployed to
     """
-    print("Writing output to file")
-    if not os.path.exists(f"./{region_name}"):
-        os.makedirs(f"./{region_name}")
-    with open(f"./{region_name}/main.tf", "w+") as file:
+    logger.info("Writing output to file")
+    if not os.path.exists(f"./terraform-files"):
+        os.makedirs(f"./terraform-files")
+    with open(f"./terraform-files/main.tf", "w+") as file:
         file.write(output_string)
