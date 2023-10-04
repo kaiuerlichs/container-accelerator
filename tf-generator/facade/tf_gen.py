@@ -75,6 +75,7 @@ def _generate_eks_modules(config):
     eks_config["subnet_ids"] = ("module.vpc.private_subnets", "ref")
     eks_config["vpc_id"] = ("module.vpc.vpc_id", "ref")
     eks_config["tags"] = _get_tags(config)
+    eks_config["cluster_endpoint_public_access"] = True
 
     if not config["fargate"] if "fargate" in config else True:
         eks_config["eks_managed_node_groups"] = {
