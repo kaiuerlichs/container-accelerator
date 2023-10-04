@@ -93,7 +93,7 @@ jobs:
         run: |
           cd terraform-files
           terraform init
-          terraform apply tfplan -auto-approve
+          terraform apply tfplan --auto-approve
           terraform output -json > ./terraform-output.json
 
       - name: Upload terraform output
