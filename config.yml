@@ -17,7 +17,7 @@ fargate: false # defaults to false
 cluster_namespaces: # defaults to kube-system
   - kube-system
   - apps
-ingress_type: aws # defaults to aws
+ingress_type: nginx # defaults to aws
 
 # node group configuration (only when fargate is false)
 node_groups:

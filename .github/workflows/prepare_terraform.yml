@@ -63,3 +63,16 @@ jobs:
               body: '✅ **Terraform files generated and deployment plan created.**\n\n
                      🔗 [View artifacts]('${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}}')
             })
+
+      - name: Post failure message
+        if: failure()
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '❌ **Terraform files generation failed.**\n\n
+                     🔗 [View failed run]('${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}}')
+            })
