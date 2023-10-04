@@ -214,7 +214,7 @@ def _generate_iam_roles(config: dict) -> str:
     # Check if roles exist
     admin_exists = False
     dev_exists = False
-    roles = get_aws_roles()
+    roles = get_aws_roles(region=config["aws_region"])
     for role in roles:
         admin_exists |= (role["RoleName"] == role_name_admin)
         dev_exists |= (role["RoleName"] == role_name_dev)

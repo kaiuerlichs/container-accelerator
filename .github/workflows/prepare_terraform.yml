@@ -14,7 +14,6 @@ on:
 env:
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-  AWS_DEFAULT_REGION: eu-west-1
 
 jobs:
   generate_tf:
@@ -46,7 +45,9 @@ jobs:
           terraform plan -out tfplan
 
       - name: Upload terraform files
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: terraform-files-{{github.event.pull_request.number}}
-          path: terraform-files
+          path: |
+            terraform-files
+            !terraform-files/.terraform*
