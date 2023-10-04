@@ -273,8 +273,7 @@ def _generate_iam_roles(config: dict) -> str:
                                                         "name": "cluster admin role",
                                                         "roles": [role_name_admin],
                                                         "policy_arn":
-                                                            ("aws_iam_policy.ca_cluster_admin_policy.arn", "ref"),
-                                                        "tags": _get_tags(config)
+                                                            ("aws_iam_policy.ca_cluster_admin_policy.arn", "ref")
                                                     })
     if not dev_exists:
         output_block += TFStringBuilder.generate_resource("aws_iam_role", "ca_cluster_dev_role", {
@@ -289,8 +288,7 @@ def _generate_iam_roles(config: dict) -> str:
                                                         "name": "cluster dev role",
                                                         "roles": [role_name_dev],
                                                         "policy_arn":
-                                                            ("aws_iam_policy.ca_cluster_dev_policy.arn", "ref"),
-                                                        "tags": _get_tags(config)
+                                                            ("aws_iam_policy.ca_cluster_dev_policy.arn", "ref")
                                                     })
     
     return output_block
