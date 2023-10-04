@@ -75,7 +75,7 @@ class AWSIngressController(IngressControllerBase):
                 quit(1)
 
     def _create_oidc_provider(self):
-        oidc_command = f'eksctl utils associate-iam-oidc-provider --cluster {self.cluster_name} --approve'
+        oidc_command = f'eksctl utils associate-iam-oidc-provider --cluster {self.cluster_name} --approve --region {self.region}'
 
         try:
             subprocess.run(oidc_command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -107,6 +107,7 @@ class AWSIngressController(IngressControllerBase):
             --name aws-load-balancer-controller\
             --attach-policy-arn arn:aws:iam::{account_id}:policy/AWSLoadBalancerControllerIAMPolicy\
             --override-existing-serviceaccounts\
+            --region {self.region}\
             --approve'
         
         try:
