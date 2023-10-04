@@ -34,7 +34,7 @@ jobs:
         run: pip install -r tf-generator/requirements.txt
 
       - name: Run tf-generator
-        run: python tf-generator/app.py config.yaml
+        run: python tf-generator/app.py config.yml
 
       - name: Run terraform commands
         run: |

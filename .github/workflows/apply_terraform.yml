@@ -80,7 +80,7 @@ jobs:
       #     done
       
       - name: Run k8s-primer
-        run: python k8s-primer/app.py config.yaml
+        run: python k8s-primer/app.py config.yml
 
   validate_deployment:
     needs: setup_k8s
