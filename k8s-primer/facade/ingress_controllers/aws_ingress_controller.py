@@ -88,10 +88,10 @@ class AWSIngressController(IngressControllerBase):
         cwd = os.path.dirname(os.path.abspath(__file__))
         policy_path = os.path.join(cwd, "../../static/iam_policy.json")
 
-        policy_command = f'aws iam create-policy --policy-name AWSLoadBalancerControllerIAMPolicy --policy-document file://{policy_path}'
+        policy_command = f'aws iam create-policy --policy-name AWSLoadBalancerControllerIAMPolicy --policy-document file://{policy_path} --debug'
         
         try:
-            subprocess.run(policy_command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            subprocess.run(policy_command, shell=True, check=True)
             logger.info("IAM policy for AWS ingress controller created successfully")
         except Exception as e:
             logger.exception("Failed to create IAM policy for AWS ingress controller")
