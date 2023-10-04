@@ -87,6 +87,7 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: terraform-files-${{github.event.pull_request.number}}
+          path: terraform-files
 
       - name: Run terraform commands
         run: |
