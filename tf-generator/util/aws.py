@@ -17,7 +17,7 @@ def get_aws_availability_zones(region: str):
     :param region: AWS region
     :return: list of AWS availability zones
     """
-    ec2 = boto3.client("ec2")
+    ec2 = boto3.client("ec2", region_name=region)
     response = ec2.describe_availability_zones(Filters=[
         {
             'Name': 'region-name',
@@ -33,7 +33,7 @@ def get_aws_instance_types(region: str):
     Returns list of AWS instance types
     :return: list of AWS instance types
     """
-    ec2 = boto3.client("ec2")
+    ec2 = boto3.client("ec2", region_name=region)
     response = ec2.describe_instance_type_offerings(
         LocationType='region',
         Filters=[
@@ -79,11 +79,11 @@ def get_table_partition_key(table_name: str) -> str:
     return key
 
 
-def get_aws_roles(prefix: str = None) -> dict:
+def get_aws_roles(prefix: str = "/") -> dict:
     """
     Returns the list of roles that match the optional prefix.
     :param prefix: Optional prefix to search for
     :return: Dictionary of roles on the account
     """
     iam = boto3.client("iam")
-    return iam.list_roles(PathPrefix=prefix).Roles
+    return iam.list_roles(PathPrefix=prefix)["Roles"]

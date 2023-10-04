@@ -117,7 +117,8 @@ class TFStringBuilder:
                     if value[1] == "ref":
                         output += f"= {value[0]}{LINE_ENDINGS}"
                     elif value[1] == "header":
-                        output += "{" + f"{LINE_ENDINGS}{TFStringBuilder._dict_to_string(value[0])}" + "}" + f"{LINE_ENDINGS}"
+                        output += "{" + f"{LINE_ENDINGS}{TFStringBuilder._dict_to_string(value[0], tab_level + 1, recursion_count + 1)}"
+                        output += f"{'  ' * tab_level}" + "}" + LINE_ENDINGS
                     continue
                 if isinstance(value, str):
                     output += f"= \"{value}\"{LINE_ENDINGS}"
@@ -131,6 +132,9 @@ class TFStringBuilder:
                     output += "= [" + LINE_ENDINGS
                     output += TFStringBuilder._list_to_string(value, tab_level + 1, recursion_count + 1)
                     output += f"{'  ' * tab_level}]" + LINE_ENDINGS
+                    continue
+                if isinstance(value, bool):
+                    output += f"= {str(value).lower()}{LINE_ENDINGS}"
                     continue
                 if isinstance(value, int) or isinstance(value, float) or value.isnumeric():
                     output += f"= {value}{LINE_ENDINGS}"

@@ -1,0 +1,42 @@
+# AWS configuration
+aws_region: eu-west-1 # mandatory
+bucket_name: my-eks-cluster-state # mandatory
+dynamodb_table_name: my-eks-cluster-lock # mandatory
+
+# VPC and Subnets
+cidr_block: 10.0.0.0/16 # defaults to 10.0.0.0/16
+availability_zones: # defaults to all available zones in the region
+  - eu-west-1a
+  - eu-west-1b
+  - eu-west-1c
+
+# EKS configuration
+cluster_name: my-eks-cluster # mandatory
+eks_version: 1.28 # defaults to latest
+fargate: false # defaults to false
+cluster_namespaces: # defaults to kube-system
+  - kube-system
+  - apps
+ingress_type: aws # defaults to aws
+
+# node group configuration (only when fargate is false)
+node_groups:
+  - name: my-node-group # mandatory
+    instance_type: t2.micro # mandatory
+    min_size: 1 # mandatory
+    max_size: 3 # mandatory
+    desired_capacity: 2
+
+# Public ingress
+enable_public_ingress: true # defaults to false
+
+# Tagging
+resource_owner: dundee-team-7 # mandatory
+environment: dev # defaults to dev
+additional_tags:
+  - key: ekscluster
+    value: my-eks-cluster
+
+# Roles and Permissions
+ca_cluster_admin_role_name: ca_cluster_admin # defaults to ca_cluster_admin
+ca_cluster_dev_role_name: ca_cluster_dev # defaults to ca_cluster_dev

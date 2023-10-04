@@ -60,7 +60,7 @@ def validate_yaml(config: dict):
 
     # Validate eks version
     if "eks_version" not in config or config["eks_version"] == "":
-        config["eks_version"] = "1.27"
+        config["eks_version"] = "1.28"
     config["eks_version"] = str(config["eks_version"])
     if config["eks_version"] not in VALID_EKS_VERSIONS:
         raise ValueError(f"{config['eks_version']} is not a valid EKS version")
