@@ -141,16 +141,6 @@ Specifies the name of the role for the cluster admin
 \
 Specifies the name of the role for the cluster developer
 
-#### access_token_env_key - mandatory
-**THIS IS NOT A CREDENTIAL**\
-\
-Specifies the key of the secret that stores the AWS access key
-
-#### secret_token_env_key - mandatory
-**THIS IS NOT A CREDENTIAL**\
-\
-Specifies the key of the secret that stores the AWS secret token key
-
 ### Example Configuration
 ```yaml
 # AWS configuration
@@ -203,6 +193,4 @@ additional_tags:
 # Roles and Permissions
 ca_cluster_admin_role_name: ca_cluster_admin 
 ca_cluster_dev_role_name: ca_cluster_dev 
-access_token_env_key: ACCESS_TOKEN 
-secret_token_env_key: SECRET_TOKEN 
 ```
