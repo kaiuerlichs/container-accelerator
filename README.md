@@ -1,10 +1,23 @@
 # Container Accelerator
 
-## Prerequisites 
+## Prerequisites
 
 In order for the program to run successfully you **must** have provisioned 2 AWS resources beforehand. These are an 
 S3 bucket and provide its name in _bucket-name_ and a DynamoDB table with the partition key of
 'LockID' **(case-sensitive)** and provide it in _dynamodb_table_name_.
+
+## Usage
+
+The intended workflow for using this tool is:
+1. Fork the repository
+2. Setup GitHub secrets for AWS config files
+3. Create a new branch and edit your configuration file
+4. Create a pull request to merge into the main branch (This will trigger `terraform validate` and `terraform plan`)
+5. When you are happy with the changes you have made, merge the pull request (This will trigger `terraform apply` and 
+run tools to configure the k8s cluster and validate the deployment)
+
+
+## Configuration Options
 
 ### AWS Configuration
 
@@ -56,7 +69,7 @@ Specifies what kind of load balancer should be used to handle incoming traffic. 
 \
 **CURRENTLY ONLY AWS IS SUPPORTED**
 
-### Node Group Configuration - *optional*
+### Node Group Configuration - *optional* {#node-group-configuration}
 **Node group configuration is only used when fargate is set to false**
 
 #### name - required
