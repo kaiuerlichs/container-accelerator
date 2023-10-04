@@ -41,6 +41,29 @@ jobs:
           name: terraform-out-${{github.event.pull_request.number}}}
           path: terraform-files/terraform-output.json
 
+      - name: Post success messgae
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: "✅ **Deployment plan applied successfully.**"
+            })
+  
+      - name: Post failure message
+        if: failure()
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: "❌ **Deployment plan failed.**\n\n🔗 [View failed run](${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}})"
+            })
+
   setup_k8s:
     needs: apply_tf
     name: Run k8s setup
@@ -82,6 +105,29 @@ jobs:
       - name: Run k8s-primer
         run: python k8s-primer/app.py config.yml
 
+      - name: Post success messgae
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: "✅ **Kubernetes cluster is configured successfully.**"
+            })
+
+      - name: Post failure message
+        if: failure()
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: "❌ **Kubernetes configuration failed.**\n\n🔗 [View failed run](${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}})"
+            })
+
   validate_deployment:
     needs: setup_k8s
     name: Validate deployment
@@ -108,3 +154,25 @@ jobs:
       - name: Run deployment_validator
         run: python deployment_validator/app.py terraform-output.json
       
+      - name: Post success messgae
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: "✅ **Deployment successfully validated.**\n\n🔗 [View artifacts](${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}})"
+            })
+
+      - name: Post failure message
+        if: failure()
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: "❌ **Deployment validation failed.**\n\n🔗 [View failed run](${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}})"
+            })
