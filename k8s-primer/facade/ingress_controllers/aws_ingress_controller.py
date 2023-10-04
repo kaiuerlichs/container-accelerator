@@ -75,7 +75,7 @@ class AWSIngressController(IngressControllerBase):
                 quit(1)
 
     def _create_oidc_provider(self):
-        oidc_command = f'eksctl utils associate-iam-oidc-provider --cluster {self.cluster_name} --approve --region {self.region} --debug'
+        oidc_command = f'eksctl utils associate-iam-oidc-provider --cluster {self.cluster_name} --approve --region {self.region}'
 
         try:
             subprocess.run(oidc_command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -88,7 +88,7 @@ class AWSIngressController(IngressControllerBase):
         cwd = os.path.dirname(os.path.abspath(__file__))
         policy_path = os.path.join(cwd, "../../static/iam_policy.json")
 
-        policy_command = f'aws iam create-policy --policy-name AWSLoadBalancerControllerIAMPolicy --policy-document file://{policy_path} --region {self.region}'
+        policy_command = f'aws iam create-policy --policy-name AWSLoadBalancerControllerIAMPolicy --policy-document file://{policy_path} --region {self.region} --debug'
         
         try:
             subprocess.run(policy_command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
