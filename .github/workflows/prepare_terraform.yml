@@ -47,7 +47,7 @@ jobs:
       - name: Upload terraform files
         uses: actions/upload-artifact@v3
         with:
-          name: terraform-files-{{github.event.pull_request.number}}
+          name: terraform-files-${{github.event.pull_request.number}}
           path: |
             terraform-files
             !terraform-files/.terraform*

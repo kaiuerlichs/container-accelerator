@@ -26,7 +26,7 @@ jobs:
       - name: Download terraform files
         uses: actions/download-artifact@v2
         with:
-          name: terraform-files-{{github.event.pull_request.number}}}
+          name: terraform-files-${{github.event.pull_request.number}}}
 
       - name: Run terraform commands
         run: |
@@ -38,7 +38,7 @@ jobs:
       - name: Upload terraform output
         uses: actions/upload-artifact@v2
         with:
-          name: terraform-out-{{github.event.pull_request.number}}}
+          name: terraform-out-${{github.event.pull_request.number}}}
           path: terraform-files/terraform-output.json
 
   setup_k8s:
@@ -103,7 +103,7 @@ jobs:
       - name: Download terraform output
         uses: actions/download-artifact@v2
         with:
-          name: terraform-out-{{github.event.pull_request.number}}}
+          name: terraform-out-${{github.event.pull_request.number}}}
 
       - name: Run deployment_validator
         run: python deployment_validator/app.py terraform-output.json
