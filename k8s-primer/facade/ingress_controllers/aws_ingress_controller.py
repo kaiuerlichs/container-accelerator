@@ -75,7 +75,7 @@ class AWSIngressController(IngressControllerBase):
                 quit(1)
 
     def _create_oidc_provider(self):
-        oidc_command = f'eksctl utils associate-iam-oidc-provider --cluster {self.cluster_name} --approve --region {self.region}'
+        oidc_command = f'eksctl utils associate-iam-oidc-provider --cluster {self.cluster_name} --approve --region {self.region} --debug'
 
         try:
             subprocess.run(oidc_command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
