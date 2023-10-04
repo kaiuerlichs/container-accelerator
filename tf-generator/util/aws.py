@@ -1,12 +1,12 @@
 import boto3
 
 
-def get_aws_regions():
+def get_aws_regions(region: str):
     """
     Returns list of AWS regions
     :return: list of AWS regions
     """
-    ec2 = boto3.client("ec2")
+    ec2 = boto3.client("ec2", region_name=region)
     regions = [region["RegionName"] for region in ec2.describe_regions()["Regions"]]
     return regions
 
@@ -47,43 +47,43 @@ def get_aws_instance_types(region: str):
     return types
 
 
-def get_bucket_names() -> list:
+def get_bucket_names(region: str) -> list:
     """
     Returns list of AWS S3 bucket names
     :return: List of AWS S3 bucket names 
     """
-    s3 = boto3.client("s3")
+    s3 = boto3.client("s3", region_name=region)
     return list(map(lambda bucket: bucket["Name"], s3.list_buckets()["Buckets"]))
 
 
-def get_dynamodb_tables() -> list:
+def get_dynamodb_tables(region: str) -> list:
     """
     Returns list of AWS DynamoDB Tables
     :return: List of AWS DynamoDB Tables
     """
-    dynamodb = boto3.client("dynamodb")
+    dynamodb = boto3.client("dynamodb", region_name=region)
 
     return dynamodb.list_tables()["TableNames"]
 
 
-def get_table_partition_key(table_name: str) -> str:
+def get_table_partition_key(table_name: str, region: str) -> str:
     """
     Gets the partition key of a given DynamoDB table
     :param table_name: The name of the DynamoDB Table
     :return: The partition key of the table
     """
-    dynamodb = boto3.client("dynamodb")
+    dynamodb = boto3.client("dynamodb", region_name=region)
     keys = filter(lambda key: (key["KeyType"] == "HASH"), dynamodb.describe_table(TableName=table_name)["Table"][
         "KeySchema"])
     key = list(map(lambda key: key["AttributeName"], keys))[0]
     return key
 
 
-def get_aws_roles(prefix: str = "/") -> dict:
+def get_aws_roles(region: str, prefix: str = "/") -> dict:
     """
     Returns the list of roles that match the optional prefix.
     :param prefix: Optional prefix to search for
     :return: Dictionary of roles on the account
     """
-    iam = boto3.client("iam")
+    iam = boto3.client("iam", region_name=region)
     return iam.list_roles(PathPrefix=prefix)["Roles"]

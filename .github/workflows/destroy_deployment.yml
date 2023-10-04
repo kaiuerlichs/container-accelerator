@@ -1,0 +1,38 @@
+name: Destroy current deployment
+run-name: Destroy current deployment (triggered by @${{ github.actor }})
+
+on:
+  workflow_dispatch:
+
+env:
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+jobs:
+  destroy_deployment:
+    name: Destroy current deployment
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Setup python environment
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11' 
+          cache: 'pip'
+
+      - name: Install tf-generator dependencies
+        run: pip install -r tf-generator/requirements.txt
+
+      - name: Run tf-generator
+        run: python tf-generator/app.py config.yml
+
+      - name: Run terraform commands
+        run: |
+          cd terraform-files
+          terraform init
+          terraform fmt
+          terraform validate
+          terraform destroy --auto-approve

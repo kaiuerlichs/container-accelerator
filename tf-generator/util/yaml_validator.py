@@ -15,12 +15,12 @@ def validate_yaml(config: dict):
     # Validate AWS region
     if "aws_region" not in config or config["aws_region"] == "":
         raise ValueError("Field aws_region is required")
-    if config["aws_region"] not in get_aws_regions():
+    if config["aws_region"] not in get_aws_regions(region=config["aws_region"]):
         raise ValueError(f"{config['aws_region']} is not a valid AWS region")
     # Validate backend bucket name
     if "bucket_name" not in config or config["bucket_name"] == "":
         raise ValueError("Field bucket_name is required")
-    elif config["bucket_name"] not in get_bucket_names():
+    elif config["bucket_name"] not in get_bucket_names(region=config["aws_region"]):
         raise ValueError(
             f"{config['bucket_name']} is not a valid bucket name. You must create the bucket before running this program"
         )
@@ -28,11 +28,11 @@ def validate_yaml(config: dict):
     # Validate dynamodb name
     if "dynamodb_table_name" not in config or config["dynamodb_table_name"] == "":
         raise ValueError("Field dynamodb_table_name is required")
-    elif config["dynamodb_table_name"] not in get_dynamodb_tables():
+    elif config["dynamodb_table_name"] not in get_dynamodb_tables(region=config["aws_region"]):
         raise ValueError(
             f"{config['dynamodb_table_name']} is not a valid DynamoDB name. You must create the table before running this program"
         )
-    elif get_table_partition_key(config["dynamodb_table_name"]) != "LockID":
+    elif get_table_partition_key(config["dynamodb_table_name"], region=config["aws_region"]) != "LockID":
         raise KeyError(
             f"{config['dynamodb_table_name']} does not have the field 'LockID'. You must create this partition key in the table before running this program")
     # Validate CIDR block

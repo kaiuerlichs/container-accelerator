@@ -1,0 +1,76 @@
+name: Prepare Terraform
+run-name: Prepare Terraform files (triggered by @${{ github.actor }})
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - master
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+env:
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+jobs:
+  generate_tf:
+    name: Generate Terraform files and plan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Setup python environment
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11' 
+          cache: 'pip'
+
+      - name: Install tf-generator dependencies
+        run: pip install -r tf-generator/requirements.txt
+
+      - name: Run tf-generator
+        run: python tf-generator/app.py config.yml
+
+      - name: Run terraform commands
+        run: |
+          cd terraform-files
+          terraform init
+          terraform fmt
+          terraform validate
+          terraform plan -out tfplan
+
+      - name: Upload terraform files
+        uses: actions/upload-artifact@v3
+        with:
+          name: terraform-files-${{github.event.pull_request.number}}
+          path: |
+            terraform-files
+            !terraform-files/.terraform*
+
+      - name: Post artifact messgae
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: "✅ **Terraform files generated and deployment plan created.**\n\n🔗 [View artifacts](${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}})"
+            })
+
+      - name: Post failure message
+        if: failure()
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: "❌ **Terraform files generation failed.**\n\n🔗 [View failed run](${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}})"
+            })
