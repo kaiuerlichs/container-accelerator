@@ -133,6 +133,9 @@ class TFStringBuilder:
                     output += TFStringBuilder._list_to_string(value, tab_level + 1, recursion_count + 1)
                     output += f"{'  ' * tab_level}]" + LINE_ENDINGS
                     continue
+                if isinstance(value, bool):
+                    output += f"= {str(value).lower()}{LINE_ENDINGS}"
+                    continue
                 if isinstance(value, int) or isinstance(value, float) or value.isnumeric():
                     output += f"= {value}{LINE_ENDINGS}"
                     continue
