@@ -1,6 +1,10 @@
 # Container Accelerator
 
-## Configuration
+## Prerequisites 
+
+In order for the program to run successfully you **must** have provisioned 2 AWS resources beforehand. These are an 
+S3 bucket and provide its name in _bucket-name_ and a DynamoDB table with the partition key of
+'LockID' **(case-sensitive)** and provide it in _dynamodb_table_name_.
 
 ### AWS Configuration
 
