@@ -204,16 +204,16 @@ jobs:
           python-version: '3.11' 
           cache: 'pip'
 
-      - name: Install deployment_validator dependencies
-        run: pip install -r deployment_validator/requirements.txt
+      - name: Install deployment-validator dependencies
+        run: pip install -r deployment-validator/requirements.txt
 
       - name: Download terraform output
         uses: actions/download-artifact@v2
         with:
           name: terraform-out-${{github.event.pull_request.number}}}
 
-      - name: Run deployment_validator
-        run: python deployment_validator/app.py terraform-output.json
+      - name: Run deployment-validator
+        run: python deployment-validator/app.py terraform-output.json
       
       - name: Post success messgae
         uses: actions/github-script@v6
