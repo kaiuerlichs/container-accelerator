@@ -28,11 +28,7 @@ def initalise_components(yaml_output: str):
         file_path = os.path.join(os.getcwd(), yaml_output)
         with open(file_path, 'r') as yaml_file:
             config = yaml.safe_load(yaml_file)
-        aws_region_name = config.get('aws_region')
-
-        if aws_region_name is None:
-            raise ValueError("AWS region name is missing in the YAML file")
-        return aws_region_name
+        return config
     except Exception as e:
         raise Exception(f"An error occurred while reading the region from YAML: {e}")
 
@@ -285,7 +281,7 @@ def run_validator(output_file: str,yaml_file: str):
     initalise_components(yaml_file)
     config = initalise_components(yaml_file)
     global eks
-    eks= create_eks_client(config["aws_region"])
+    eks = create_eks_client(config["aws_region"])
 
 
 # If the EKS client is not created, log an error message
