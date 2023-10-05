@@ -214,6 +214,26 @@ def check_subnet_availability_zones(az_and_subnet, valid_az_list, public_subnet_
         logger.warning(f"An error occurred: {e}")
         return False
    
+def run_az_validator(json_file,yaml_file,aws_region_name,vpc_id):
+
+    """
+    This function runs the necceary functions needed to validate if each availability zone
+    has exactly 1 public and 1 private subnet
+    :param json_file: the json file that contains the subnet ids
+    :param yaml_file: the yaml file that contains the availability zones
+    :param aws_region_name: the region name of the VPC
+    :param vpc_id: the VPC ID of cluster
+    
+    """
+    private_subnets=json_file["public_subnets"]["value"]
+    public_subnets=json_file["public_subnets"]["value"]
+
+    avaliablity_zones=yaml_file["availability_zones"]
+    get_az_dict=get_avaliablity_zones(aws_region_name,vpc_id)
+    check_subnet_availability_zones(get_az_dict, avaliablity_zones, public_subnets, private_subnets)
+
+    check_subnet_availability_zones(get_az_dict,avaliablity_zones,public_subnets,private_subnets )
+
 
 
 def check_k8s_connection():
