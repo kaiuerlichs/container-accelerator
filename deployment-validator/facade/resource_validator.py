@@ -72,7 +72,7 @@ def check_vpc(vpc_id, region_name):
     """
     try:
         ec2 = boto.client('ec2', region_name=region_name)
-        response = ec2.describe_vpcs(VpcIds=[vpc_id])
+        response = ec2.describe_vpcs(VpcIds=[vpc_id["value"]])
 
         if len(response['Vpcs']) == 1:
             vpc = response['Vpcs'][0]
@@ -97,7 +97,7 @@ def check_subnets(subnet_ids):
     :return: true for successful or false for not successful
     """
     try:
-        response = eks.describe_subnets(SubnetIds=subnet_ids)
+        response = eks.describe_subnets(SubnetIds=subnet_ids["value"])
         for subnet in response['Subnets']:
             if subnet['State'] != 'available':
                 logger.warning(f"Subnet {subnet['SubnetId']} does not exist.")
