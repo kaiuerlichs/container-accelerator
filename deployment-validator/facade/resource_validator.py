@@ -18,6 +18,11 @@ logging.basicConfig(
 )
 
 def initalise_components(yaml_output: str):
+    """
+    Read the AWS region from the YAML file
+    :param yaml_output: the YAML file
+    :return: the AWS region name
+    """
     try:
         with open(yaml_output, 'r') as yaml_file:
             config = yaml.safe_load(yaml_file)
@@ -32,6 +37,11 @@ def initalise_components(yaml_output: str):
 
 
 def create_eks_client(region_name):
+    """
+    Create an EKS client
+    :param region_name: the region name of the EKS cluster
+    :return: the EKS client
+    """
     try:
         return boto.client('eks',  region_name=region_name)
     except Exception as e:
