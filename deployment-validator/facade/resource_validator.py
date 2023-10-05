@@ -1,6 +1,7 @@
 # Import necessary libraries
 import boto3 as boto
 import json
+import yaml
 import logging
 import requests
 import subprocess
@@ -16,21 +17,27 @@ logging.basicConfig(
         datefmt="%Y-%m-%d %H:%M:%S"
 )
 
-def create_eks_client():
-    
+def initalise_components(yaml_output: str):
     try:
-        return boto.client('eks')
+        with open(yaml_output, 'r') as yaml_file:
+            config = yaml.safe_load(yaml_file)
+        aws_region_name = config.get('aws_region')
+
+        if aws_region_name is None:
+            raise ValueError("AWS region name is missing in the YAML file")
+        return aws_region_name
+    except Exception as e:
+        raise Exception(f"An error occurred while reading the region from YAML: {e}")
+
+
+
+def create_eks_client(region_name):
+    try:
+        return boto.client('eks',  region_name=region_name)
     except Exception as e:
         logger.warning("Failed to create EKS client:", str(e))
         return None
 
-
-# Create the EKS client
-eks = create_eks_client()
-
-# If the EKS client is not created, log an error message
-if eks is None:
-    logger.warning("EKS client is not created. Please check your AWS credentials.")
 
 def load_json_data(file_name: str) -> dict:
     """
