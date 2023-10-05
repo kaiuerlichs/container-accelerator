@@ -273,13 +273,17 @@ def run_validator(output_file: str,yaml_file: str):
 
     """
     Run all the validation checks
+    :param output_file: the output file
+    :return: true for successful or false for not successful
+
     """
     
 
 # Create the EKS client
     initalise_components(yaml_file)
     aws_region_name = initalise_components(yaml_file)
-    eks = create_eks_client(aws_region_name)
+    global eks
+    eks= create_eks_client(aws_region_name)
 
 
 # If the EKS client is not created, log an error message
