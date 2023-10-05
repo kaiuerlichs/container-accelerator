@@ -1,196 +1,165 @@
+
 # Container Accelerator
 
-## Prerequisites
-
-In order for the program to run successfully you **must** have provisioned 2 AWS resources beforehand. These are an 
-S3 bucket and provide its name in _bucket-name_ and a DynamoDB table with the partition key of
-'LockID' **(case-sensitive)** and provide it in _dynamodb_table_name_.
-
-## Usage
-
-The intended workflow for using this tool is:
-1. Fork the repository
-2. Setup GitHub secrets for AWS config files
-3. Create a new branch and edit your configuration file
-4. Create a pull request to merge into the main branch (This will trigger `terraform validate` and `terraform plan`)
-5. When you are happy with the changes you have made, merge the pull request (This will trigger `terraform apply` and 
-run tools to configure the k8s cluster and validate the deployment)
+This Container Accelerator is a quickstart deployment solution for AWS Elastic Kubernetes Service clusters. It takes in a simple yaml file providing the configuration of the AWS infrastructure and Kubernetes setup, and provides easy-to-use deployment pipelines to instatiate these resources.
 
 
-## Configuration Options
 
-### AWS Configuration
+## Getting Started
 
-#### aws_region - required
-Specifies the AWS region to deploy the infrastructure to.
+Follow the steps below to get started using the Container Accelerator and initiate an EKS cluster deployment in minutes.
 
-#### bucket_name - required
-Specifies the bucket to store the Terraform state
+### Prerequisites
+- An AWS account with access priviledges to create EKS clusters
+- An S3 bucket and DynamoDB table for remote terraform backend ([How do I do this?](https://spacelift.io/blog/terraform-s3-backend#terraform-s3-backend-implementation-)) 
 
-#### dynamodb_table_name - required
-Specifies the DynamoDB table for locking the Terraform state file. This table must have "LockID" as its partition key
+### Usage
 
-### Networking Configuration
-#### cidr_block - *optional*
-**Defaults to 10.0.0.0/16** \
-\
-Specifies the CIDR block assigned to the VPC. 
+1. Fork the Container Accelerator repository found [here](https://github.com/kaiuerlichs/container-accelerator)
+2. Set up the `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` secrets in the GitHub Actions repository secrets
+3. Create a new branch (i.e. `config`) and adjust the `config.yml` file to configure your EKS cluster deployment
+4. Create a pull request onto the master branch 
+```
+This will start an Actions workflow that goes through the following steps:
+- generate terraform files
+- create deployment plan
+```
+5. Merge your pull request
+```
+This will start an Actions workflow that goes through the following steps:
+- generate terraform files
+- create deployment plan
+- apply deployment plan
+- configure the k8s cluster
+- validate the deployment was successful
+```
 
-#### availability_zones - *optional*
-**Defaults to all availability zones in the region** \
-\
-Specifies which regions to create a private and public subnet in. Each subnet will be given equal numbers of IP 
-addresses based on the size of the CIDR block given to the VPC
+### Deleting a deployment
 
-### EKS Configuration
+Using these steps, you can use the Container Accelerator tools to destroy an existing EKS deployment.
 
-#### cluster_name - required
-Specifies name of the cluster.
+1. Ensure your `config.yml` contains the correct remote backend configuration
+2. Navigate to the Actions tab and select the `Destroy current deployment` pipeline
+3. Select `run workflow` and choose the master branch
 
-#### eks_version - *optional*
-**Defaults to the latest version of EKS** \
-\
-Specifies the version of EKS to run
+The pipeline will now remove your existing EKS deployment matching the config.yml.
+## Configuration parameters
 
-#### fargate - *optional*
-**Defaults to false** \
-\
-Specifies if fargate should be used for compute resources
+#### AWS configuration
 
-#### cluster_namespaces - *optional*
-**Defaults to kube-system** \
-\
-Specifies the namespaces to create for the kubernetes cluster
+| Parameter | Type | Description |
+| :---------| :----| :---------- |
+| `aws_region` | `string` | **Required**. Specifies the AWS region to deploy the infrastructure to |
+| `bucket_name` | `string` | **Required**. Specifies the bucket to store the Terraform state |
+| `dynamodb_table_name` | `string` | **Required**. Specifies the DynamoDB table for locking the Terraform state file |
 
-#### ingress_type - *optional*
-**Defaults to AWS**\
-\
-Specifies what kind of load balancer should be used to handle incoming traffic. \
-\
-**CURRENTLY ONLY AWS IS SUPPORTED**
+#### Networking configuration
 
-### Node Group Configuration - *optional* {#node-group-configuration}
-**Node group configuration is only used when fargate is set to false**
+| Parameter | Type | Description |
+| :---------| :----| :---------- |
+| `cidr_block` | `string` | **Defaults to `10.0.0.0/16`**. Specifies the CIDR block assigned to the VPC |
+| `availability_zones` | `string` | **Defaults to all availability zones in the region**. Specifies which regions to create a private and public subnet in. Each subnet will be given equal numbers of IP addresses based on the size of the CIDR block given to the VPC |
 
-#### name - required
-Specifies the name of the node group
+#### EKS configuration
 
-#### instance_type - required
-Specifies the type of instance to be used to run each node. Must be an EC2 instance
+| Parameter | Type | Description |
+| :---------| :----| :---------- |
+| `cluster_name` | `string` | **Required**. Specifies name of the cluster |
+| `eks_version` | `string` | **Defaults to `1.28`**. Specifies the version of EKS to run |
+| `fargate` | `bool` | **Defaults to `false`**. Specifies if fargate should be used for compute resources |
+| `cluster-namespaces` | `list` | **Defaults to `[kube-system]`**. Specifies the namespaces to create for the kubernetes cluster |
+| `ingress_type` | `enum` | **Defaults to `aws`**. Specifies what kind of ingress controller should be used. Available controllers: `aws`, ... |.
+| `node_groups` | `list` | **Required if fargate is false**. List of node groups to deploy into the cluster (see below) |
 
-#### min_size - required
-Specifies the minimum number of nodes to be running at any time in the cluster
+#### Node Group configuration (only when fargate is false)
 
-#### max_size - required
-Specifies the maximum number of nodes to be running at any time in the cluster
+| Parameter | Type | Description |
+| :---------| :----| :---------- |
+| `name` | `string` | **Required**. Specifies name of the node group |
+| `instance_type` | `string` | **Required**. Specifies the type of EC2 instance to be used to run each node |
+| `min_size` | `number` | **Required**. Specifies the minimum number of nodes to be running at any time in the cluster |
+| `max_size` | `number` | **Required**. Specifies the maximum number of nodes to be running at any time in the cluster |
+| `desired_capacity` | `number` | **Optional**. Specifies the desired number of nodes to be running at any time in the cluster |
 
-#### desired_capacity - required
-Specifies the desired number of nodes to be running at any time in the cluster
+#### Public ingress configuration
 
-### Ingress Configuration
+| Parameter | Type | Description |
+| :---------| :----| :---------- |
+| `enable_public_ingress` | `bool` | **Defaults to `false`**. Specifies if public ingress should be allowed for the cluster |
 
-#### enable_public_ingress - *optional*
-**Defaults to false** \
-\
-Specifies if public ingress should be allowed for the cluster
+#### IAM roles
 
-#### ingress_from_port - *optional*
-**Defaults to 80**\
-\
-Specifies the starting port for accepting traffic
+IAM roles are created during deployment to provide access control out of the box. Admin users will be able to create and destroy deployments, while dev users can deploy into the EKS cluster. 
 
-#### ingress_to_port - *optional*
-**Defaults to 80**\
-\
-Specifies the end port for accepting traffic
+(*May pass existing role names to attach policies to those roles.*)
 
-#### ingress_protocol - *optional*
-**Defaults to TCP**\
-\
-Specifies the protocol for ingress traffic
+| Parameter | Type | Description |
+| :---------| :----| :---------- |
+| `ca_cluster_admin_role_name` | `string` | **Defaults to `ca_cluster_admin`**. Specifies name of cluster admin IAM role |
+| `ca_cluster_dev_role_name` | `string` | **Defaults to `ca_cluster_dev`**. Specifies name of cluster dev IAM role |
 
-### Tagging
-These tags are added to every piece of infrastructure deployed to AWS
+#### Global resource tagging
 
-#### resource_owner - mandatory
-Specifies the resource owner tag
+Global resource tags are attached to all resources created by the container accelerator.
 
-#### environment - *optional*
-**Defaults to dev**\
-\
-Specifies the environment type
+| Parameter | Type | Description |
+| :---------| :----| :---------- |
+| `resource_owner` | `string` | **Required**. Specifies the resource owner tag |
+| `environment` | `string` | **Defaults to `dev`**. Specifies the environment tag |
+| `additional_tags` | `list` | **Optional**. Specifies additional tags by providing a key/value pair |
 
-#### additional_tags - *optional*
-Specifies any additional tags to be added
 
-##### key - mandatory
-Specifies the key of the tag to be added
+## Example config file
 
-##### value - mandatory
-Specifies the value of the tag to be added
-
-### Roles and Permissions
-
-#### ca_cluster_admin_role_name - *optional*
-**Defaults to ca_cluster_admin**\
-\
-Specifies the name of the role for the cluster admin
-
-#### ca_cluster_dev_role_name - *optional*
-**Defaults to ca_cluster_dev**\
-\
-Specifies the name of the role for the cluster developer
-
-### Example Configuration
 ```yaml
 # AWS configuration
-aws_region: us-east-1 
-bucket_name: tf-state-bucket
-dynamodb_table_name: tf-locking-table
+aws_region: eu-west-1 
+bucket_name: my-eks-cluster-state 
+dynamodb_table_name: my-eks-cluster-lock 
 
 # VPC and Subnets
-cidr_block: 10.0.0.0/16
+cidr_block: 10.0.0.0/16 # defaults to 10.0.0.0/16
 availability_zones: 
-  - us-east-1a
-  - us-east-1b
-  - us-east-1c
-  - us-east-1d
-  - us-east-1e
-  - us-east-1f
+  - eu-west-1a
+  - eu-west-1b
+  - eu-west-1c
 
 # EKS configuration
-cluster_name: my-cluster 
-eks_version: 1.14 
+cluster_name: my-eks-cluster 
+eks_version: 1.28 
 fargate: false 
-cluster_namespaces:
+cluster_namespaces: 
   - kube-system
-  - default
-ingress_type: aws
+  - apps
+ingress_type: aws 
 
-# node group configuration (only when fargate is false)
+# node group configuration 
 node_groups:
   - name: my-node-group 
-    instance_type: t3.medium 
+    instance_type: t2.micro 
     min_size: 1 
     max_size: 3 
     desired_capacity: 2
 
 # Public ingress
 enable_public_ingress: true 
-ingress_from_port: 80
-ingress_to_port: 80 
-ingress_protocol: tcp 
 
 # Tagging
-resource_owner: my-team 
+resource_owner: dundee-team-7 
 environment: dev 
 additional_tags:
-  - key: Test
-    value: Value
-  - key: Test2
-    value: Test3
+  - key: ekscluster
+    value: my-eks-cluster
 
 # Roles and Permissions
 ca_cluster_admin_role_name: ca_cluster_admin 
 ca_cluster_dev_role_name: ca_cluster_dev 
 ```
+## Authors
+
+- [@Casperscare](https://www.github.com/Casperscare)
+- [@kellycj](https://www.github.com/kellycj)
+- [@SN51-SYS](https://www.github.com/SN51-SYS)
+- [@winer222](https://www.github.com/winer222)
+- [@kaiuerlichs](https://www.github.com/kaiuerlichs)
+
