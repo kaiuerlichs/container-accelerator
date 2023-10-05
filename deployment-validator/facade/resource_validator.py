@@ -68,7 +68,7 @@ def check_vpc(vpc_id, region_name):
     """
     try:
         ec2 = boto.client('ec2', region_name=region_name)
-        response = ec2.describe_vpcs(VpcIds=[vpc_id["value"]])
+        response = ec2.describe_vpcs(VpcIds=[vpc_id])
 
         if len(response['Vpcs']) == 1:
             vpc = response['Vpcs'][0]
@@ -93,7 +93,7 @@ def check_subnets(subnet_ids):
     :return: true for successful or false for not successful
     """
     try:
-        response = eks.describe_subnets(SubnetIds=subnet_ids["value"])
+        response = eks.describe_subnets(SubnetIds=subnet_ids)
         for subnet in response['Subnets']:
             if subnet['State'] != 'available':
                 logger.warning(f"Subnet {subnet['SubnetId']} does not exist.")
@@ -162,7 +162,7 @@ def ping_alb(alb_dns_name):
         logger.warning(f"An error occurred: {e}")
         return False
 
-def get_avaliablity_zones(aws_region_name,vpc_id):
+def get_avaliablity_zones(aws_region_name, vpc_id):
      """
         Get each subnet as well as their avilability zones from the cluster then create a dictionary with each aviabilty zone as key and their respective subnets as values
 
@@ -251,13 +251,14 @@ def run_az_validator(json_file, config, vpc_id):
 
 
 
-def check_k8s_connection():
+def check_k8s_connection(cluster_name, region):
     """
     Check if you can successfully run a 'kubectl get nodes' command,
       indicating a working connection to the Kubernetes cluster
     :return: true for successful or false for not successful
     """
     try:
+        output = subprocess.check_output(f"aws eks update-kubeconfig --name {cluster_name} --region {region}")
         output = subprocess.check_output(["kubectl", "get", "nodes"])
         logger.info("Connection to Kubernetes cluster is working.")
         return True
@@ -292,13 +293,13 @@ def run_validator(output_file: str,yaml_file: str):
     resource_info = load_json_data(output_file)
     
     # Check VPC
-    vpc_id = resource_info.get("vpc_id")
+    vpc_id = resource_info.get("vpc_id")["value"]
     if vpc_id:
         if not check_vpc(vpc_id, config["aws_region"]):
             quit(1)
 
     # Check Subnets
-    subnet_ids = resource_info.get("subnet_ids")
+    subnet_ids = resource_info.get("subnet_ids")["value"]
     if subnet_ids:
         if not check_subnets(subnet_ids):
             quit(1)
@@ -309,25 +310,25 @@ def run_validator(output_file: str,yaml_file: str):
             quit(1)
         
     # Check ALB
-    alb_arn = resource_info.get("alb_arn")
+    alb_arn = resource_info.get("alb_arn")["value"]
     if alb_arn:
         if not check_alb(alb_arn):
             quit(1)
 
     # Check EKS Cluster
-    cluster_name = resource_info.get("cluster_name")
+    cluster_name = resource_info.get("cluster_name")["value"]
     if cluster_name:
         if not check_eks(cluster_name):
             quit(1)
 
     # Ping ALB
-    alb_dns_name = resource_info.get("alb_dns_name")
+    alb_dns_name = resource_info.get("alb_dns_name")["value"]
     if alb_dns_name:
         if not ping_alb(alb_dns_name):
             quit(1)
 
     # Check K8s Connection
-    if not check_k8s_connection():
+    if not check_k8s_connection(cluster_name, config["aws_region"]):
         quit(1)
 
     # If all checks pass, log a success message
