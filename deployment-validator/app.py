@@ -1,6 +1,6 @@
 import logging
 from util.args_util import load_args
-from facade.resource_validator import run_validation
+from facade.resource_validator import run_validator
 
 
 logger = logging.getLogger(__name__)
@@ -13,4 +13,4 @@ logging.basicConfig(
 
 if __name__ == "__main__":
     args = load_args()
-    run_validation(args.output_file)
+    run_validator(args.output_file)
