@@ -1,4 +1,5 @@
 # Import necessary libraries
+import os
 import boto3 as boto
 import json
 import yaml
@@ -24,6 +25,7 @@ def initalise_components(yaml_output: str):
     :return: the AWS region name
     """
     try:
+        file_path = os.path.join(os.getcwd(), yaml_output)
         with open(yaml_output, 'r') as yaml_file:
             config = yaml.safe_load(yaml_file)
         aws_region_name = config.get('aws_region')
