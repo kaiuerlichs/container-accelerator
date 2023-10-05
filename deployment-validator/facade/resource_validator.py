@@ -26,7 +26,7 @@ def initalise_components(yaml_output: str):
     """
     try:
         file_path = os.path.join(os.getcwd(), yaml_output)
-        with open(yaml_output, 'r') as yaml_file:
+        with open(file_path, 'r') as yaml_file:
             config = yaml.safe_load(yaml_file)
         aws_region_name = config.get('aws_region')
 
