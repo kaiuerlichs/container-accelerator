@@ -13,4 +13,4 @@ logging.basicConfig(
 
 if __name__ == "__main__":
     args = load_args()
-    run_validator(args.output_file)
+    run_validator(args.output_file, args.config_file)
