@@ -233,7 +233,7 @@ def check_subnet_availability_zones(az_and_subnet, valid_az_list, public_subnet_
         logger.warning(f"An error occurred: {e}")
         return False
    
-def run_az_validator(json_file,yaml_file,aws_region_name,vpc_id):
+def run_az_validator(json_file, config, vpc_id):
 
     """
     This function runs the necceary functions needed to validate if each availability zone
@@ -247,11 +247,11 @@ def run_az_validator(json_file,yaml_file,aws_region_name,vpc_id):
     private_subnets=json_file["public_subnets"]["value"]
     public_subnets=json_file["public_subnets"]["value"]
 
-    avaliablity_zones=yaml_file["availability_zones"]
-    get_az_dict=get_avaliablity_zones(aws_region_name,vpc_id)
+    avaliablity_zones=config["availability_zones"]
+    get_az_dict=get_avaliablity_zones(config["aws_region"], vpc_id)
     check_subnet_availability_zones(get_az_dict, avaliablity_zones, public_subnets, private_subnets)
 
-    check_subnet_availability_zones(get_az_dict,avaliablity_zones,public_subnets,private_subnets )
+    check_subnet_availability_zones(get_az_dict, avaliablity_zones, public_subnets, private_subnets )
 
 
 
@@ -283,7 +283,7 @@ def run_validator(output_file: str,yaml_file: str):
 
 # Create the EKS client
     initalise_components(yaml_file)
-    aws_region_name = initalise_components(yaml_file)
+    config = initalise_components(yaml_file)
     global eks
     eks= create_eks_client(aws_region_name)
 
@@ -298,7 +298,7 @@ def run_validator(output_file: str,yaml_file: str):
     # Check VPC
     vpc_id = resource_info.get("vpc_id")
     if vpc_id:
-        if not check_vpc(vpc_id, aws_region_name):
+        if not check_vpc(vpc_id, config["aws_region"]):
             quit(1)
 
     # Check Subnets
@@ -308,8 +308,8 @@ def run_validator(output_file: str,yaml_file: str):
             quit(1)
         
     # Check Subnet Availability Zones
-    if vpc_id and aws_region_name:
-        if not run_az_validator(resource_info,yaml_file,aws_region_name,vpc_id):
+    if vpc_id:
+        if not run_az_validator(resource_info, config, vpc_id):
             quit(1)
         
     # Check ALB
