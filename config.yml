@@ -11,7 +11,7 @@ availability_zones: # defaults to all available zones in the region
   - eu-west-1c
 
 # EKS configuration
-cluster_name: my-eks-cluster # mandatory
+cluster_name: my-cool-cluster
 eks_version: 1.28 # defaults to latest
 fargate: false # defaults to false
 cluster_namespaces: # defaults to kube-system
