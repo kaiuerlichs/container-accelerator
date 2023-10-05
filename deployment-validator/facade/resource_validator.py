@@ -285,7 +285,7 @@ def run_validator(output_file: str,yaml_file: str):
     initalise_components(yaml_file)
     config = initalise_components(yaml_file)
     global eks
-    eks= create_eks_client(aws_region_name)
+    eks= create_eks_client(config["aws_region"])
 
 
 # If the EKS client is not created, log an error message
