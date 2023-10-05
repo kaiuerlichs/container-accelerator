@@ -64,14 +64,14 @@ def load_json_data(file_name: str) -> dict:
         logger.error(f"load_json_data - File Not found - {e}")
         exit(1)
 
-def check_vpc(vpc_id):
+def check_vpc(vpc_id, region_name):
     """
     Check if a specified VPC exists and is available
     :param vpc_id: the VPC ID of cluster
     :return: true for successful or false for not successful
     """
     try:
-        ec2 = boto.client('ec2')
+        ec2 = boto.client('ec2', region_name=region_name)
         response = ec2.describe_vpcs(VpcIds=[vpc_id])
 
         if len(response['Vpcs']) == 1:
