@@ -1,7 +1,7 @@
 # AWS configuration
 aws_region: eu-west-1 # mandatory
-bucket_name: my-eks-cluster-state # mandatory
-dynamodb_table_name: my-eks-cluster-lock # mandatory
+bucket_name: evaluation-tf-state # mandatory
+dynamodb_table_name: evaluatoin-tf-lock-table # mandatory
 
 # VPC and Subnets
 cidr_block: 10.0.0.0/16 # defaults to 10.0.0.0/16
