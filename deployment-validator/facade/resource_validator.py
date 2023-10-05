@@ -298,7 +298,7 @@ def run_validator(output_file: str,yaml_file: str):
     # Check VPC
     vpc_id = resource_info.get("vpc_id")
     if vpc_id:
-        if not check_vpc(vpc_id):
+        if not check_vpc(vpc_id, aws_region_name):
             quit(1)
 
     # Check Subnets
