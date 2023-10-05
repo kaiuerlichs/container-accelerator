@@ -259,13 +259,26 @@ def check_k8s_connection():
         return False
 
 
-def run_validator(output_file: str):
+def run_validator(output_file: str,yaml_file: str):
+
     """
     Run all the validation checks
     """
+    
+
+# Create the EKS client
+    initalise_components(yaml_file)
+    aws_region_name = initalise_components(yaml_file)
+    eks = create_eks_client(aws_region_name)
+
+
+# If the EKS client is not created, log an error message
+    if eks is None:
+        logger.warning("EKS client is not created. Please check your AWS credentials.")
+    
     # Load resource information from JSON file
     resource_info = load_json_data(output_file)
-
+    
     # Check VPC
     vpc_id = resource_info.get("vpc_id")
     if vpc_id:
@@ -279,9 +292,8 @@ def run_validator(output_file: str):
             quit(1)
         
     # Check Subnet Availability Zones
-    subnet_availability_zones = resource_info.get("subnet_availability_zones")
-    if subnet_availability_zones:
-        if not check_subnet_availability_zones(subnet_availability_zones):
+    if vpc_id and aws_region_name:
+        if not run_az_validator(resource_info,yaml_file,aws_region_name,vpc_id):
             quit(1)
         
     # Check ALB
