@@ -1,6 +1,7 @@
 # Import necessary libraries
 import boto3 as boto
 import json
+import yaml
 import logging
 import requests
 import subprocess
@@ -16,20 +17,37 @@ logging.basicConfig(
         datefmt="%Y-%m-%d %H:%M:%S"
 )
 
-def create_eks_client():
+def initalise_components(yaml_output: str):
+    """
+    Read the AWS region from the YAML file
+    :param yaml_output: the YAML file
+    :return: the AWS region name
+    """
     try:
-        return boto.client('eks')
+        with open(yaml_output, 'r') as yaml_file:
+            config = yaml.safe_load(yaml_file)
+        aws_region_name = config.get('aws_region')
+
+        if aws_region_name is None:
+            raise ValueError("AWS region name is missing in the YAML file")
+        return aws_region_name
+    except Exception as e:
+        raise Exception(f"An error occurred while reading the region from YAML: {e}")
+
+
+
+def create_eks_client(region_name):
+    """
+    Create an EKS client
+    :param region_name: the region name of the EKS cluster
+    :return: the EKS client
+    """
+    try:
+        return boto.client('eks',  region_name=region_name)
     except Exception as e:
         logger.warning("Failed to create EKS client:", str(e))
         return None
 
-
-# Create the EKS client
-eks = create_eks_client()
-
-# If the EKS client is not created, log an error message
-if eks is None:
-    logger.warning("EKS client is not created. Please check your AWS credentials.")
 
 def load_json_data(file_name: str) -> dict:
     """
@@ -146,39 +164,93 @@ def ping_alb(alb_dns_name):
         logger.warning(f"An error occurred: {e}")
         return False
 
+def get_avaliablity_zones(aws_region_name,vpc_id):
+     """
+        Get each subnet as well as their avilability zones from the cluster then create a dictionary with each aviabilty zone as key and their respective subnets as values
 
-def create_subnet_availability_zones(data: dict) -> dict:
-    """
-    Creating a dictionary to store availability zones as keys and their associated subnets as values.
-    :param data: loaded configuration file
-    :return: dictionary of AZs per subnet
-    """
-    subnet_availability_zones = {}
-    
-    for subnet in data['SUBNET']:
-        if 'id' in subnet and 'availabilityZone' in subnet:
-            subnet_id = subnet['id']
-            availability_zone = subnet['availabilityZone']
-            
-            # Check if the availability_zone already exists in the dictionary
-            if availability_zone in subnet_availability_zones:
-                subnet_availability_zones[availability_zone].append(subnet_id)
-            else:
-                subnet_availability_zones[availability_zone] = [subnet_id]
-    
-    return subnet_availability_zones
+        :param aws_region_name: the region name of the VPC
+        :param vpc_id: the VPC ID of cluster
+        :return: true for successful or false for not successful
+        """
+     ec2_client = boto.client('ec2', region_name=aws_region_name)
 
-def check_subnet_availability_zones(subnet_availability_zones: dict):
+     subnet_response = ec2_client.describe_subnets(Filters=[{'Name': 'vpc-id', 'Values': [vpc_id]}])
+
+    #get the subnet id as a key and the Availability zone as values then add them to a dictionary
+     subnetId_and_azs = {}
+     for subnet_info in subnet_response['Subnets']:
+        subnet_id = subnet_info['SubnetId']
+        availability_zone = subnet_info['AvailabilityZone']
+        subnetId_and_azs[subnet_id] = availability_zone
+
+     az_and_subnetId = {}
+
+    #Create a new dictionary from the previous one, making the azs the key and the subnet the values and then return said dictionary
+     for subnet_id, availability_zones in subnetId_and_azs.items():
+        for az in availability_zones:
+                if az not in az_and_subnetId:
+                    az_and_subnetId[az] = []
+                az_and_subnetId[az].append(subnet_id)
+
+        return az_and_subnetId
+     
+
+def check_subnet_availability_zones(az_and_subnet, valid_az_list, public_subnet_ids, private_subnet_ids):
     """
-    Check if each availability zone has exactly two subnets
-    :param subnet_availability_zones: Dict of availability zones and associated subnets
-    :return:
+    Check if the availability zones are valid and if each az has exactly 1 private
+    and 1 public subnet
+    :param az_and_subnet: the availability zones and their respective subnets
+    :param valid_az_list: the list of valid AZs
+    :param public_subnet_ids: the public subnet IDs
+    :param private_subnet_ids: the private subnet IDs
+    :return: true for successful or false for not successful
     """
-    for availability_zone, subnets in subnet_availability_zones.items():
-        if len(subnets) != 2:
-            logger.warning(f"check_subnet_availability_zones - Availability Zone {availability_zone} does not have "
-                            f"exactly two subnets: {subnets}")
-            
+    try:
+        # Initialize a flag to track validation status
+        is_valid = True
+
+        # Iterate through each availability zone
+        for az, subnet_ids in az_and_subnet.items():
+            # Check if the availability zone is in the valid AZ list
+            if az not in valid_az_list:
+                logger.warning(f"Invalid AZ '{az}' found.")
+                is_valid = False
+                continue
+
+            # Check if the number of subnets in this AZ is exactly 1 public and 1 private
+            public_count = sum(1 for subnet_id in subnet_ids if subnet_id in public_subnet_ids)
+            private_count = sum(1 for subnet_id in subnet_ids if subnet_id in private_subnet_ids)
+
+            if public_count != 1 or private_count != 1:
+                logger.warning(f"AZ '{az}' does not have exactly 1 public and 1 private subnet.")
+                is_valid = False
+
+        return is_valid
+
+    except Exception as e:
+        logger.warning(f"An error occurred: {e}")
+        return False
+   
+def run_az_validator(json_file,yaml_file,aws_region_name,vpc_id):
+
+    """
+    This function runs the necceary functions needed to validate if each availability zone
+    has exactly 1 public and 1 private subnet
+    :param json_file: the json file that contains the subnet ids
+    :param yaml_file: the yaml file that contains the availability zones
+    :param aws_region_name: the region name of the VPC
+    :param vpc_id: the VPC ID of cluster
+    
+    """
+    private_subnets=json_file["public_subnets"]["value"]
+    public_subnets=json_file["public_subnets"]["value"]
+
+    avaliablity_zones=yaml_file["availability_zones"]
+    get_az_dict=get_avaliablity_zones(aws_region_name,vpc_id)
+    check_subnet_availability_zones(get_az_dict, avaliablity_zones, public_subnets, private_subnets)
+
+    check_subnet_availability_zones(get_az_dict,avaliablity_zones,public_subnets,private_subnets )
+
 
 
 def check_k8s_connection():
@@ -197,13 +269,30 @@ def check_k8s_connection():
         return False
 
 
-def run_validator(output_file: str):
+def run_validator(output_file: str,yaml_file: str):
+
     """
     Run all the validation checks
+    :param output_file: the output file
+    :return: true for successful or false for not successful
+
     """
+    
+
+# Create the EKS client
+    initalise_components(yaml_file)
+    aws_region_name = initalise_components(yaml_file)
+    global eks
+    eks= create_eks_client(aws_region_name)
+
+
+# If the EKS client is not created, log an error message
+    if eks is None:
+        logger.warning("EKS client is not created. Please check your AWS credentials.")
+    
     # Load resource information from JSON file
     resource_info = load_json_data(output_file)
-
+    
     # Check VPC
     vpc_id = resource_info.get("vpc_id")
     if vpc_id:
@@ -217,9 +306,8 @@ def run_validator(output_file: str):
             quit(1)
         
     # Check Subnet Availability Zones
-    subnet_availability_zones = resource_info.get("subnet_availability_zones")
-    if subnet_availability_zones:
-        if not check_subnet_availability_zones(subnet_availability_zones):
+    if vpc_id and aws_region_name:
+        if not run_az_validator(resource_info,yaml_file,aws_region_name,vpc_id):
             quit(1)
         
     # Check ALB
