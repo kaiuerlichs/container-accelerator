@@ -17,4 +17,5 @@ def load_args():
     """
     parser = argparse.ArgumentParser(description="Deployment validator")
     parser.add_argument("output_file", help="Path to terraform output file")
+    parser.add_argument("config_file", help="Path to config file")
     return parser.parse_args()

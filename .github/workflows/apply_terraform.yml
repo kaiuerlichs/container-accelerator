@@ -213,7 +213,7 @@ jobs:
           name: terraform-out-${{github.event.pull_request.number}}
 
       - name: Run deployment-validator
-        run: python deployment-validator/app.py terraform-output.json
+        run: python deployment-validator/app.py terraform-output.json config.yaml
       
       - name: Post success messgae
         uses: actions/github-script@v6
