@@ -91,7 +91,7 @@ The pipeline will now remove your existing EKS deployment matching the config.ym
 
 IAM roles are created during deployment to provide access control out of the box. Admin users will be able to create and destroy deployments, while dev users can deploy into the EKS cluster. 
 
-(*May pass existing role names to attach policies to those roles.*)
+(*May pass existing role names to attach policies to those roles*)
 
 | Parameter | Type | Description |
 | :---------| :----| :---------- |
